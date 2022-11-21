@@ -1,0 +1,26 @@
+{
+  "name": "pi-bot",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Phobetore/pi-Bot.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Phobetore/pi-Bot/issues"
+  },
+  "homepage": "https://github.com/Phobetore/pi-Bot#readme",
+  "dependencies": {
+    "discord.js": "^14.6.0",
+    "node": "^19.1.0"
+  },
+  "devDependencies": {
+    "eslint": "^8.28.0"
+  }
+}
