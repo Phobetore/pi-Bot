@@ -1,4 +1,3 @@
-
 const Discord =  require("discord.js");
 const intents = new Discord.IntentsBitField(8);
 const client = new Discord.Client({intents});
@@ -8,8 +7,23 @@ const path = require('node:path');
 
 
 
+// File loading
+const eventsPath = path.join(__dirname, 'events');
+const eventFiles = fs.readdirSync(eventsPath).filter(file => file.endsWith('.js'));
 
-// commands loading
+for (const file of eventFiles) {
+	const filePath = path.join(eventsPath, file);
+	const event = require(filePath);
+	if (event.once) {
+		client.once(event.name, (...args) => event.execute(...args));
+	} else {
+		client.on(event.name, (...args) => event.execute(...args));
+	}
+}
+
+
+
+// Commands loading
 client.commands = new Discord.Collection();
 
 const commandsPath = path.join(__dirname, 'commands');
@@ -26,32 +40,6 @@ for (const file of commandFiles) {
 	}
 }
 
-client.on(Discord.Events.InteractionCreate, async interaction => {
-	if (!interaction.isChatInputCommand()) return;
-	
-	const command = interaction.client.commands.get(interaction.commandName);
-
-	if (!command) {
-		console.error(`No command matching ${interaction.commandName} was found.`);
-		return;
-	}
-
-	try {
-		await command.execute(interaction);
-	} catch (error) {
-		console.error(error);
-		await interaction.reply({ content: 'There was an error while executing this command!', ephemeral: true });
-	}
-});
-
-
-
-
-// When the client is ready, run this code (only once)
-// We use 'c' for the event parameter to keep it separate from the already defined 'client'
-client.once(Discord.Events.ClientReady, c => {
-	console.log(`Ready! Logged in as ${c.user.tag}`);
-});
 
 
 
@@ -59,24 +47,4 @@ client.once(Discord.Events.ClientReady, c => {
 // Log in to Discord with your client's token
 client.login(config.token);
 
-
-
-
-// setting an activity
-client.on('ready', () => {
-	
-    const activities = [
-        "Être ou ne pas être ?",
-        "La secte du ban !",
-        "3.1415926535",
-        "Connaissez-vous Axarathe ?",
-        "les oeuvres de Sweet"
-    ];
-
-    setInterval(()=>{
-    const inter = activities[Math.floor(Math.random()*activities.length)];
-    client.user.setActivity(inter, { type: Discord.ActivityType.Watching})},8000
-    );
-
-});
 
