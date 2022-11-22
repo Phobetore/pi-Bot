@@ -5,9 +5,6 @@ const client = new Discord.Client({intents})
 const config = require("./config.json")
 //const loadCommand = require("./Loader/loadCommand.js")
 
-const timer = ms => new Promise( res => setTimeout(res, ms));
-
-
 
 // When the client is ready, run this code (only once)
 // We use 'c' for the event parameter to keep it separate from the already defined 'client'
@@ -21,16 +18,17 @@ client.login(config.token);
 client.on('ready', () => {
 	
     const activities = [
-        "Etre ou ne pas etre ?",
+        "Être ou ne pas être ?",
         "La secte du ban !",
         "3.1415926535",
-        "Connaissez vous Axarathe ?",
-        "Le cul de Lenny"
+        "Connaissez-vous Axarathe ?",
+        "les oeuvres de Sweet"
     ];
 
     setInterval(()=>{
     const inter = activities[Math.floor(Math.random()*activities.length)];
-    client.user.setActivity(inter, { type: Discord.ActivityType.Watching})},10000
+    client.user.setActivity(inter, { type: Discord.ActivityType.Watching})},8000
     );
 
 });
+
