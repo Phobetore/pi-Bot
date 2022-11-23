@@ -8,11 +8,7 @@ module.exports = {
 
 	async execute(interaction) {
 
-        if (interaction.customId === 'select') {
-            await interaction.update({ content: 'Something was selected!', components: [] });
-            console.log('Something was selected!')
-        }
-    
+        
         const row = new ActionRowBuilder()
 			.addComponents(
 				new SelectMenuBuilder()
@@ -29,16 +25,25 @@ module.exports = {
 							description: 'une description',
 							value: 'second_option',
 						},
-					),
-			);
+                        ),
+                        );
+                        
+                        const afficher = new EmbedBuilder()
+                        .setColor(0x0099FF)
+                        .setTitle('Titre')
+                        .setDescription('UNE IMAGE');
+                        
+                        
+                        await interaction.reply({ content: 'Peut etre une future commande d\'aventure interactive ?', embeds: [afficher], components: [row] });
 
-        const afficher = new EmbedBuilder()
-            .setColor(0x0099FF)
-            .setTitle('Titre')
-            .setDescription('UNE IMAGE');
+
+                        if (interaction.customId === 'select') {
+                            await interaction.update({ content: 'Something was selected!', components: [] });
+                            console.log('Something was selected!')
+                        }
 
 
-        await interaction.reply({ content: 'Peut etre une future commande d\'aventure interactive ?', embeds: [afficher], components: [row] });
-	},
-};
-
+                    },
+                };
+                
+                
