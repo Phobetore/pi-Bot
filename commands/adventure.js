@@ -6,7 +6,8 @@ module.exports = {
 		.setName('adventure')
 		.setDescription('test'),
 
-	async execute(interaction) {
+	async execute(interactionAdventure) {
+
 
         
         const row = new ActionRowBuilder()
@@ -16,33 +17,26 @@ module.exports = {
 					.setPlaceholder('Selectionner')
 					.addOptions(
 						{
-							label: 'premier',
+							label: 'Aventure 1',
 							description: 'une description',
-							value: 'first_option',
+							value: 'aventure1',
 						},
 						{
-							label: 'deuxieme',
+							label: 'Aventure 2',
 							description: 'une description',
-							value: 'second_option',
+							value: 'aventure2',
 						},
                         ),
                         );
+						
                         
                         const afficher = new EmbedBuilder()
                         .setColor(0x0099FF)
-                        .setTitle('Titre')
-                        .setDescription('UNE IMAGE');
+                        .setTitle('AVENTURE INTERACTIVE')
+                        .setDescription('Choisissez une aventure:')
                         
                         
-                        await interaction.reply({ content: 'Peut etre une future commande d\'aventure interactive ?', embeds: [afficher], components: [row] });
-
-
-                        if (interaction.customId === 'select') {
-                            await interaction.update({ content: 'Something was selected!', components: [] });
-                            console.log('Something was selected!')
-                        }
-
-
+                        await interactionAdventure.reply({ embeds: [afficher], components: [row] });
                     },
                 };
                 

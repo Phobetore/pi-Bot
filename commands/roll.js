@@ -36,9 +36,9 @@ module.exports = {
         if ((des && des >= 1)) {
             toReturn = ""
             for (let i = 1; i <= des ; i++) {
-                toReturn += "\n"+ i +" => " + (1 + Math.floor(Math.random() * (faces)));
+                toReturn += "\n "+ i +" => " + (1 + Math.floor(Math.random() * (faces)));
             }
-            await interaction.reply(`**${cible}** rolled: (${des}d${faces}) \n And got : ${toReturn}`);     
+            await interaction.reply(`**${cible}** rolled: (${des}d${faces}) \nAnd got : ${toReturn}`);     
         }
         else{
             await interaction.reply(`**${cible}** rolled: (1d${faces}) \n And got : ${1 + Math.floor(Math.random() * (faces))}`);     

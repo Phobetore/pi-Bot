@@ -44,11 +44,3 @@ for (const file of commandFiles) {
 // Log in to Discord with your client's token
 client.login(config.token);
 
-
-
-
-client.on(Discord.Events.InteractionCreate, interaction => {
-	if (!interaction.isSelectMenu()) return;
-	console.log(interaction);
-});
-
