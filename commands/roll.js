@@ -33,7 +33,7 @@ module.exports = {
             faces = 20
         }
 
-        if ((des && des >= 1)) {
+        if ((des && des > 1)) {
             toReturn = ""
             total = 0
             for (let i = 1; i <= des ; i++) {
