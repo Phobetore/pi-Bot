@@ -35,10 +35,13 @@ module.exports = {
 
         if ((des && des >= 1)) {
             toReturn = ""
+            total = 0
             for (let i = 1; i <= des ; i++) {
-                toReturn += "\n "+ i +" => " + (1 + Math.floor(Math.random() * (faces)));
+                temp = (1 + Math.floor(Math.random() * (faces)));
+                toReturn += "\n "+ i +" => " + temp;
+                total = total + temp
             }
-            await interaction.reply(`**${cible}** rolled: (${des}d${faces}) \nAnd got : ${toReturn}`);     
+            await interaction.reply(`**${cible}** rolled: (${des}d${faces}) \nAnd got : ${toReturn} \nTotal: ${total}`);     
         }
         else{
             await interaction.reply(`**${cible}** rolled: (1d${faces}) \n And got : ${1 + Math.floor(Math.random() * (faces))}`);     
