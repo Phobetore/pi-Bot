@@ -21,13 +21,13 @@ module.exports = {
                 .setRequired(false)),
 
 
-	async execute(interaction) {
-		faces = interaction.options.getNumber('faces');
-		cible = interaction.options.getString('cible');
-		des = interaction.options.getNumber('dés');
+	async execute(interactionRoll) {
+		faces = interactionRoll.options.getNumber('faces');
+		cible = interactionRoll.options.getString('cible');
+		des = interactionRoll.options.getNumber('dés');
         
         if (!cible) {
-            cible = interaction.user
+            cible = interactionRoll.user
         }
         if (!(faces && faces >= 1)) {
             faces = 20
@@ -41,10 +41,10 @@ module.exports = {
                 toReturn += "\n "+ i +" => " + temp;
                 total = total + temp
             }
-            await interaction.reply(`**${cible}** rolled: (${des}d${faces}) \nAnd got : ${toReturn} \nTotal: ${total}`);     
+            await interactionRoll.reply(`**${cible}** rolled: (${des}d${faces}) \nAnd got : ${toReturn} \nTotal: ${total}`);     
         }
         else{
-            await interaction.reply(`**${cible}** rolled: (1d${faces}) \n And got : ${1 + Math.floor(Math.random() * (faces))}`);     
+            await interactionRoll.reply(`**${cible}** rolled: (1d${faces}) \n And got : ${1 + Math.floor(Math.random() * (faces))}`);     
         }
 
         
