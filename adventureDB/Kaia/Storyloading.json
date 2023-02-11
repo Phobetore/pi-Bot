@@ -1,0 +1,100 @@
+{
+    "name": "Naema",
+    "rootChoice": {
+    "actual": "root",
+    "path": ["root.png"],
+    "choices": ["A", "B", "C"]
+    },
+    "choices": [
+        {
+            "name": "A",
+            "parent": "root",
+            "path": ["rootToA.png"],
+            "choices": ["A1", "A2"]
+        },
+        {
+            "name": "B",
+            "parent": "root",
+            "path": ["rootToB1.png", "rootToB2.png", "rootToB3.png", "rootToB4.png"],
+            "choices": ["B1", "B2"]
+        },
+        {
+            "name": "C",
+            "parent": "root",
+            "path": [],
+            "text": "You fled succesfully"
+        },
+        {
+            "name": "A1",
+            "parent": "A",
+            "path": ["rootToA1.png"],
+            "choices": ["A1a", "A1b"]
+        },
+        {
+            "name": "A2",
+            "parent": "A",
+            "path": ["rootToA2.png"],
+            "choices": ["A2a", "A2b"]
+        },
+        {
+            "name": "B1",
+            "parent": "B",
+            "path": ["rootToB1.png"],
+            "choices": ["B1a", "B1b"]
+        },
+        {
+            "name": "B2",
+            "parent": "B",
+            "path": ["rootToB2.png"],
+            "choices": ["B2a", "B2b"]
+        },
+        {
+            "name": "A1a",
+            "parent": "A1",
+            "path": ["rootToA1a.png"],
+            "choices": []
+        },
+        {
+            "name": "A1b",
+            "parent": "A1",
+            "path": ["rootToA1b.png"],
+            "choices": []
+        },
+        {
+            "name": "A2a",
+            "parent": "A2",
+            "path": ["rootToA2a.png"],
+            "choices": []
+        },
+        {
+            "name": "A2b",
+            "parent": "A2",
+            "path": ["rootToA2b.png"],
+            "choices": []
+        },
+        {
+            "name": "B1a",
+            "parent": "B1",
+            "path": ["rootToB1a.png"],
+            "choices": []
+        },
+        {
+            "name": "B1b",
+            "parent": "B1",
+            "path": ["rootToB1b.png"],
+            "choices": []
+        },
+        {
+            "name": "B2a",
+            "parent": "B2",
+            "path": ["rootToB2a.png"],
+            "choices": []
+        },
+        {
+            "name": "B2b",
+            "parent": "B2",
+            "path": ["rootToB2b.png"],
+            "choices": []
+        }
+    ]
+}

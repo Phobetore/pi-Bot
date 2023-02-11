@@ -8,7 +8,6 @@ module.exports = {
             "Être ou ne pas être ?",
             "La secte du ban !",
             "3.1415926535",
-            "Connaissez-vous Axarathe ?",
             "les oeuvres de E-Magpie#0682",
             "bot en cours de dev",
             "l'infinité de l'espace"

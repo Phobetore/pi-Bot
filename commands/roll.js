@@ -31,20 +31,45 @@ module.exports = {
         }
         if (!(faces && faces >= 1)) {
             faces = 20
+            if (faces > 1000000) {
+                face = 1000000;
+            }
         }
-
+        
         if ((des && des > 1)) {
+            
+            if (des > 100) {
+                des = 100;
+            }
+
+
             toReturn = ""
             total = 0
             for (let i = 1; i <= des ; i++) {
                 temp = (1 + Math.floor(Math.random() * (faces)));
                 toReturn += "\n "+ i +" => " + temp;
                 total = total + temp
+                if (temp == 69) {
+                    toReturn += "\n||Nice~~||";
+                }
             }
-            await interactionRoll.reply(`**${cible}** rolled: (${des}d${faces}) \nAnd got : ${toReturn} \nTotal: ${total}`);     
+
+            if (total.length > 1900) {
+                await interactionRoll.reply(`Le nombre de charactére depasse la limite discord, veuillez le faire en plusieurs fois`);     
+                
+            }
+            else{
+                await interactionRoll.reply(`**${cible}** rolled: (${des}d${faces}) \nAnd got : ${toReturn} \nTotal: **${total}**`);     
+            }
+
         }
         else{
-            await interactionRoll.reply(`**${cible}** rolled: (1d${faces}) \n And got : ${1 + Math.floor(Math.random() * (faces))}`);     
+            temp = 1 + Math.floor(Math.random() * (faces));
+            total = "" + temp
+            if (temp == 69) {
+                total += " ||Nice~~||";
+            }
+            await interactionRoll.reply(`**${cible}** rolled: (1d${faces}) \n And got : **${total}**`);     
         }
 
         

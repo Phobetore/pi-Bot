@@ -1,0 +1,29 @@
+{
+    "name": "Naema",
+    "rootChoice": {
+        "actual": "root",
+        "path": ["root.png"],
+        "choices": ["A", "B", "C"]
+    },
+    "choices": [
+        {
+            "name": "A",
+            "parent": "root",
+            "path": ["rootToA.png"],
+            "choices": []
+        },
+        {
+            "name": "B",
+            "parent": "root",
+            "path": ["rootToB1.png", "rootToB2.png", "rootToB3.png", "rootToB4.png"],
+            "choices": []
+        },
+        {
+            "name": "C",
+            "parent": "root",
+            "path": [],
+            "text": "You fled succesfully",
+            "choices": []
+        }
+    ]
+}
