@@ -18,7 +18,8 @@
   "homepage": "https://github.com/Phobetore/pi-Bot#readme",
   "dependencies": {
     "discord.js": "^14.6.0",
-    "node": "^19.1.0"
+    "node": "^19.1.0",
+    "request": "^2.88.2"
   },
   "devDependencies": {
     "eslint": "^8.28.0"
