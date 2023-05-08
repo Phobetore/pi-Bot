@@ -1,18 +1,6 @@
-FROM node:16
-
-# Create app directory
-WORKDIR /usr/src/pi-bot
-
-# Install app dependencies
-# A wildcard is used to ensure both package.json AND package-lock.json are copied
-# where available (npm@5+)
-COPY package*.json ./
-
-RUN npm install
-# If you are building your code for production
-# RUN npm ci --only=production
-
-# Bundle app source
+FROM node:18-alpine
+WORKDIR /pi-bot
 COPY . .
-
-CMD [ "node", "index.js" ]
+RUN yarn install --production
+RUN node deploy-commands.js
+CMD ["node", "index.js"]

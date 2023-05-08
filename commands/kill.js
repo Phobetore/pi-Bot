@@ -3,7 +3,7 @@ const { SlashCommandBuilder, EmbedBuilder } = require('discord.js');
 module.exports = {
     data: new SlashCommandBuilder()
         .setName('kill')
-        .setDescription("Tacler quelqu'un")
+        .setDescription("Tuer quelqu'un")
         .addUserOption(option =>
             option
             .setName('target')
