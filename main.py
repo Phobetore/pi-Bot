@@ -90,18 +90,21 @@ def load_json_files_into_cache():
         CACHE["server_prefs"] = {}
 
 
-def save_cache_to_json_files():
-    # user_preferences
-    with open("user_preferences.json", "w", encoding="utf-8") as f:
-        json.dump(CACHE["user_preferences"], f, indent=4)
+async def save_cache_to_json_files():
+    """Persist the in-memory cache to JSON files using a single lock."""
+    from cogs.dice_rolls import CacheManager
+    async with CacheManager._lock:
+        # user_preferences
+        with open("user_preferences.json", "w", encoding="utf-8") as f:
+            json.dump(CACHE["user_preferences"], f, indent=4)
 
-    # user_stats
-    with open("user_stats.json", "w", encoding="utf-8") as f:
-        json.dump(CACHE["user_stats"], f, indent=4)
+        # user_stats
+        with open("user_stats.json", "w", encoding="utf-8") as f:
+            json.dump(CACHE["user_stats"], f, indent=4)
 
-    # server_preferences
-    with open("server_preferences.json", "w", encoding="utf-8") as f:
-        json.dump(CACHE["server_prefs"], f, indent=4)
+        # server_preferences
+        with open("server_preferences.json", "w", encoding="utf-8") as f:
+            json.dump(CACHE["server_prefs"], f, indent=4)
 
 init_json_files()
 load_json_files_into_cache()
@@ -133,7 +136,7 @@ bot = commands.Bot(command_prefix=get_server_prefix, intents=intents, help_comma
 @tasks.loop(seconds=SAVE_INTERVAL)
 async def periodic_saver():
     """Tâche asynchrone qui sauvegarde le cache dans les fichiers JSON."""
-    save_cache_to_json_files()
+    await save_cache_to_json_files()
 
 @bot.event
 async def on_ready():
@@ -474,7 +477,7 @@ async def stop_bot(ctx):
     await ctx.send("Bot is shutting down...")
     if periodic_saver.is_running():
         periodic_saver.cancel()
-    save_cache_to_json_files()
+    await save_cache_to_json_files()
     await bot.close()
 
 # ─────────────────────────────────────────────
