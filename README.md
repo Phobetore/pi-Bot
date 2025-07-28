@@ -1,60 +1,59 @@
 # pi-Bot
 
-pi-Bot est un bot Discord permettant de gérer facilement des lancers de dés, avec de nombreuses options de personnalisation. Basé sur [Py‑Cord](https://docs.pycord.dev/), il propose un système multilingue et plusieurs commandes pour simplifier la vie des joueurs comme des maîtres du jeu.
+pi-Bot is a Discord bot that manages dice rolls with many customization options. Built on [Py-Cord](https://docs.pycord.dev/), it supports multiple languages and offers several commands to make life easier for both players and game masters.
 
-## Fonctionnalités principales
+## Main Features
 
-- **Lancer de dés flexible** : expressions du type `2d6+3` avec support des modificateurs et d'un nom de cible optionnel.
-- **Couleurs personnalisées** : chaque utilisateur peut choisir la couleur des messages du bot (`!setcolor rouge`).
-- **Préfixe configurable** : adaptation du préfixe de commande par serveur (`!setprefix ?`).
-- **Jet par défaut** : possibilité de définir un lancer par défaut utilisé lorsque aucune expression n'est fournie (`!defaultRoll 1d20`).
-- **Support multilingue** : anglais, français, allemand et espagnol via la commande `!setlang`.
-- **Sauvegarde automatique** : préférences et statistiques stockées dans des fichiers JSON et mises en cache en mémoire.
+- **Flexible dice rolling**: expressions like `2d6+3` with modifiers and an optional target name.
+- **Custom colors**: each user can choose the bot's message color (`!setcolor red`).
+- **Configurable prefix**: adjust the command prefix per server (`!setprefix ?`).
+- **Default roll**: define a default roll used when no expression is provided (`!defaultRoll 1d20`).
+- **Multilanguage support**: English, French, German and Spanish via `!setlang`.
+- **Automatic saving**: preferences and statistics stored in JSON files and cached in memory.
 
 ## Installation
 
-1. Clonez ce dépôt.
-2. Installez les dépendances :
+1. Clone this repository.
+2. Install the dependencies:
    ```bash
    pip install -r requirements.txt
    ```
-3. Créez un fichier `config.json` avec le contenu suivant :
+3. Create a `config.json` file with the following content:
    ```json
    {
-       "token": "VOTRE_TOKEN_DISCORD",
+       "token": "YOUR_DISCORD_TOKEN",
        "prefix": "!"
    }
    ```
-4. Lancez le bot :
+4. Start the bot:
    ```bash
    python main.py
    ```
 
-## Guide rapide
+## Quick Guide
 
-### Pour les joueurs et MJ
+### For players and GMs
 
-- **Lancer un dé simple** : `!roll 1d20`
-- **Ajouter des modificateurs** : `!roll 1d20+5` ou `!r 1d6+1d4-2`
-- **Raccourci** : `!r` est équivalent à `!roll`
-- **Jet par défaut** : si un jet est configuré via `!defaultRoll`, `!r` sans argument utilisera ce jet
-- **Changer la couleur des messages** : `!setcolor rouge`
-- **Voir la couleur actuelle** : `!getcolor`
+- **Roll a single die**: `!roll 1d20`
+- **Add modifiers**: `!roll 1d20+5` or `!r 1d6+1d4-2`
+- **Shortcut**: `!r` is the same as `!roll`
+- **Default roll**: if a roll is set via `!defaultRoll`, calling `!r` with no arguments uses it
+- **Change message color**: `!setcolor red`
+- **View the current color**: `!getcolor`
 
-### Pour les modérateurs
+### For moderators
 
-- **Changer la langue** : `!setlang fr`
-- **Définir un jet par défaut** : `!defaultRoll 1d20+5`
-- **Modifier le préfixe** : `!setprefix ?`
+- **Change the language**: `!setlang fr`
+- **Set a default roll**: `!defaultRoll 1d20+5`
+- **Modify the prefix**: `!setprefix ?`
 
-Seules les personnes ayant la permission « Manage Server » peuvent modifier la langue, le jet par défaut ou le préfixe.
+Only those with the "Manage Server" permission can change the language, default roll, or prefix.
 
-## Notes supplémentaires
+## Additional Notes
 
-- Les fichiers `user_stats.json`, `user_preferences.json` et `server_preferences.json` sont générés automatiquement et ignorés par git.
-- Les journaux d'audit sont enregistrés dans `audit.log`.
+- The files `user_stats.json`, `user_preferences.json` and `server_preferences.json` are generated automatically and ignored by git.
+- Audit logs are saved in `audit.log`.
 
-## Contribuer
+## Contributing
 
-Les contributions sont bienvenues ! N'hésitez pas à ouvrir une *issue* ou une *pull request* pour proposer des améliorations.
-
+Contributions are welcome! Feel free to open an issue or pull request to suggest improvements.
