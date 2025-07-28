@@ -1,6 +1,5 @@
 user_stats.json
-user_preferences.json
-server_preferences.json
+
 
 # Ignorer les fichiers sensibles
 config.json
