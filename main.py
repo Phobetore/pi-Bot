@@ -141,7 +141,8 @@ async def periodic_saver():
 @bot.event
 async def on_ready():
     print(f"Bot connecté : {bot.user.name}")
-    periodic_saver.start()
+    if not periodic_saver.is_running():
+        periodic_saver.start()
 
 @bot.event
 async def on_command_error(ctx, error):
@@ -474,11 +475,17 @@ for extension in startup_extensions:
 async def stop_bot(ctx):
     """Arrête le bot proprement (sauvegarde cache, arrête la loop)."""
     await ctx.send("Bot is shutting down...")
-    periodic_saver.cancel()
+    if periodic_saver.is_running():
+        periodic_saver.cancel()
     await save_cache_to_json_files()
     await bot.close()
 
 # ─────────────────────────────────────────────
 #          LANCEMENT DU BOT
 # ─────────────────────────────────────────────
-bot.run(config["token"])
+try:
+    bot.run(config["token"])
+finally:
+    if periodic_saver.is_running():
+        periodic_saver.cancel()
+    save_cache_to_json_files()
