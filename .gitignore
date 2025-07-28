@@ -1,0 +1,13 @@
+# Ignorer les fichiers sensibles
+config.json
+
+# Caches Python
+__pycache__/
+*.pyc
+
+# Logs
+*.log
+
+# Environnement virtuel (si tu en utilises un)
+env/
+.venv/
