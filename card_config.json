@@ -1,0 +1,49 @@
+{
+  "allowed_server_id": "0",
+  "admin_users": [],
+  "cards": [
+    {
+      "id": "card_a",
+      "name": "Carte A",
+      "image": null,
+      "description": "Carte de démonstration A"
+    },
+    {
+      "id": "card_b",
+      "name": "Carte B",
+      "image": null,
+      "description": "Carte de démonstration B"
+    },
+    {
+      "id": "card_c",
+      "name": "Carte C",
+      "image": null,
+      "description": "Carte de démonstration C"
+    },
+    {
+      "id": "card_d",
+      "name": "Carte D",
+      "image": null,
+      "description": "Carte de démonstration D"
+    }
+  ],
+  "default_deck": [
+    {
+      "card_id": "card_a",
+      "count": 5
+    },
+    {
+      "card_id": "card_b",
+      "count": 5
+    },
+    {
+      "card_id": "card_c",
+      "count": 5
+    },
+    {
+      "card_id": "card_d",
+      "count": 5
+    }
+  ],
+  "user_decks": {}
+}
