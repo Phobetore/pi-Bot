@@ -5,6 +5,7 @@ pi-Bot is a Discord bot that manages dice rolls with many customization options.
 ## Main Features
 
 - **Flexible dice rolling**: expressions like `2d6+3` with modifiers and an optional target name.
+- **Card drawing**: draw cards from a standard 52-card deck with commands like `!draw`, `!shuffle`, and `!newdeck`.
 - **Custom colors**: each user can choose the bot's message color (`!setcolor red`).
 - **Configurable prefix**: adjust the command prefix per server (`!setprefix ?`).
 - **Default roll**: define a default roll used when no expression is provided (`!defaultRoll 1d20`).
@@ -38,6 +39,10 @@ pi-Bot is a Discord bot that manages dice rolls with many customization options.
 - **Add modifiers**: `!roll 1d20+5` or `!r 1d6+1d4-2`
 - **Shortcut**: `!r` is the same as `!roll`
 - **Default roll**: if a roll is set via `!defaultRoll`, calling `!r` with no arguments uses it
+- **Draw cards**: `!draw` or `!draw 5` to draw cards from the deck
+- **Shuffle deck**: `!shuffle` to shuffle and return all cards to the deck
+- **New deck**: `!newdeck` to create a fresh deck
+- **Deck info**: `!deckinfo` to see how many cards remain
 - **Change message color**: `!setcolor red`
 - **View the current color**: `!getcolor`
 

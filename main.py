@@ -204,7 +204,15 @@ TRANSLATIONS = {
         "embed_for": "For",
         "embed_dice_details": "Dice Details:",
         "embed_calculation": "Calculation:",
-        "embed_rolled_by": "Rolled by"
+        "embed_rolled_by": "Rolled by",
+        "draw_title": "Draw Cards",
+        "draw_desc": "Draw one or more cards from the server's deck.",
+        "shuffle_title": "Shuffle Deck",
+        "shuffle_desc": "Shuffle the deck and return all drawn cards to it.",
+        "newdeck_title": "New Deck",
+        "newdeck_desc": "Create a fresh shuffled deck for the server.",
+        "deckinfo_title": "Deck Info",
+        "deckinfo_desc": "Display information about the server's current deck."
     },
     "fr": {
         "help_title": "Aide du Bot",
@@ -226,7 +234,15 @@ TRANSLATIONS = {
         "embed_for": "Pour",
         "embed_dice_details": "Détails des dés :",
         "embed_calculation": "Calcul :",
-        "embed_rolled_by": "Lancé par"
+        "embed_rolled_by": "Lancé par",
+        "draw_title": "Tirer des Cartes",
+        "draw_desc": "Tirez une ou plusieurs cartes du paquet du serveur.",
+        "shuffle_title": "Mélanger le Paquet",
+        "shuffle_desc": "Mélangez le paquet et remettez toutes les cartes tirées dedans.",
+        "newdeck_title": "Nouveau Paquet",
+        "newdeck_desc": "Créez un nouveau paquet mélangé pour le serveur.",
+        "deckinfo_title": "Info Paquet",
+        "deckinfo_desc": "Affiche des informations sur le paquet actuel du serveur."
     },
     "de": {
         "help_title": "Bot-Hilfe",
@@ -248,7 +264,15 @@ TRANSLATIONS = {
         "embed_for": "Für",
         "embed_dice_details": "Würfel Details:",
         "embed_calculation": "Berechnung:",
-        "embed_rolled_by": "Gewürfelt von"
+        "embed_rolled_by": "Gewürfelt von",
+        "draw_title": "Karten Ziehen",
+        "draw_desc": "Ziehen Sie eine oder mehrere Karten aus dem Kartendeck des Servers.",
+        "shuffle_title": "Deck Mischen",
+        "shuffle_desc": "Mischen Sie das Deck und legen Sie alle gezogenen Karten zurück.",
+        "newdeck_title": "Neues Deck",
+        "newdeck_desc": "Erstellen Sie ein neues gemischtes Deck für den Server.",
+        "deckinfo_title": "Deck Info",
+        "deckinfo_desc": "Zeigt Informationen über das aktuelle Deck des Servers an."
     },
     "es": {
         "help_title": "Ayuda del Bot",
@@ -270,7 +294,15 @@ TRANSLATIONS = {
         "embed_for": "Para",
         "embed_dice_details": "Detalles de los dados:",
         "embed_calculation": "Cálculo:",
-        "embed_rolled_by": "Lanzado por"
+        "embed_rolled_by": "Lanzado por",
+        "draw_title": "Robar Cartas",
+        "draw_desc": "Roba una o más cartas de la baraja del servidor.",
+        "shuffle_title": "Barajar Mazo",
+        "shuffle_desc": "Baraja el mazo y devuelve todas las cartas robadas a él.",
+        "newdeck_title": "Nuevo Mazo",
+        "newdeck_desc": "Crea un nuevo mazo barajado para el servidor.",
+        "deckinfo_title": "Info del Mazo",
+        "deckinfo_desc": "Muestra información sobre el mazo actual del servidor."
     }
 }
 
@@ -452,6 +484,58 @@ async def help_command(ctx):
         inline=False
     )
 
+    # ─────────────────────────────────────────────
+    #  7) DRAW / D
+    # ─────────────────────────────────────────────
+    embed.add_field(
+        name=f"🃏 **{server_prefix}draw / {server_prefix}d** — {tr['draw_title']}",
+        value=(
+            f"{tr['draw_desc']}\n\n"
+            f"**Exemple :**\n"
+            f"```yaml\n{server_prefix}draw 5\n```"
+        ),
+        inline=False
+    )
+
+    # ─────────────────────────────────────────────
+    #  8) SHUFFLE
+    # ─────────────────────────────────────────────
+    embed.add_field(
+        name=f"🔀 **{server_prefix}shuffle** — {tr['shuffle_title']}",
+        value=(
+            f"{tr['shuffle_desc']}\n\n"
+            f"**Exemple :**\n"
+            f"```yaml\n{server_prefix}shuffle\n```"
+        ),
+        inline=False
+    )
+
+    # ─────────────────────────────────────────────
+    #  9) NEWDECK
+    # ─────────────────────────────────────────────
+    embed.add_field(
+        name=f"🆕 **{server_prefix}newdeck** — {tr['newdeck_title']}",
+        value=(
+            f"{tr['newdeck_desc']}\n\n"
+            f"**Exemple :**\n"
+            f"```yaml\n{server_prefix}newdeck\n```"
+        ),
+        inline=False
+    )
+
+    # ─────────────────────────────────────────────
+    #  10) DECKINFO
+    # ─────────────────────────────────────────────
+    embed.add_field(
+        name=f"ℹ️ **{server_prefix}deckinfo** — {tr['deckinfo_title']}",
+        value=(
+            f"{tr['deckinfo_desc']}\n\n"
+            f"**Exemple :**\n"
+            f"```yaml\n{server_prefix}deckinfo\n```"
+        ),
+        inline=False
+    )
+
     # Footer
     embed.set_footer(text=tr["help_footer"])
     await ctx.send(embed=embed)
@@ -460,7 +544,7 @@ async def help_command(ctx):
 # ─────────────────────────────────────────────
 #          CHARGEMENT DU COG
 # ─────────────────────────────────────────────
-startup_extensions = ["cogs.dice_rolls"]
+startup_extensions = ["cogs.dice_rolls", "cogs.card_draw"]
 for extension in startup_extensions:
     try:
         bot.load_extension(extension)
