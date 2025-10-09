@@ -1,12 +1,10 @@
-# pi-Bot
+# SirrDice
 
 A Discord bot for rolling dice in tabletop RPG games.
 
-> **Note:** This is mainly a personal project to showcase my development skills. Feel free to use it or contribute if you'd like.
+## What is SirrDice?
 
-## What is pi-Bot?
-
-pi-Bot is a Discord bot that helps you roll dice for your tabletop games. It supports multiple languages and lets you customize how it looks and works.
+SirrDice is a Discord bot that helps you roll dice for your tabletop games. It supports multiple languages and lets you customize how it looks and works.
 
 ## Features
 
