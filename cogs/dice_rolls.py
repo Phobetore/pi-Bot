@@ -348,4 +348,4 @@ class DiceRolls(commands.Cog):
 
 
 async def setup(bot: commands.Bot):
-    bot.add_cog(DiceRolls(bot))
+    await bot.add_cog(DiceRolls(bot))
