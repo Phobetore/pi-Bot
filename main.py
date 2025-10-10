@@ -3,7 +3,6 @@ from discord.ext import commands, tasks
 import json
 import os
 import asyncio
-import inspect
 import time
 
 from bot_state import (
@@ -468,9 +467,7 @@ startup_extensions = ["cogs.dice_rolls", "cogs.card_draws"]
 async def load_startup_extensions():
     for extension in startup_extensions:
         try:
-            maybe_coro = bot.load_extension(extension)
-            if inspect.isawaitable(maybe_coro):
-                await maybe_coro
+            await bot.load_extension(extension)
         except Exception as e:
             audit_logger.error(f"Error loading extension {extension}: {e}")
 
