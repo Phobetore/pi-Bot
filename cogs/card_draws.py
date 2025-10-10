@@ -498,5 +498,8 @@ class CardDraws(commands.Cog):
                 )
             except discord.Forbidden:
                 pass
-async def setup(bot: commands.Bot):
-    await bot.add_cog(CardDraws(bot))
+def setup(bot: commands.Bot):
+    cog = CardDraws(bot)
+    maybe_coro = bot.add_cog(cog)
+    if asyncio.iscoroutine(maybe_coro):
+        bot.loop.create_task(maybe_coro)

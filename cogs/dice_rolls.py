@@ -358,5 +358,8 @@ class DiceRolls(commands.Cog):
         await ctx.send(f"🎨 Votre couleur préférée est : {color_name}.")
 
 
-async def setup(bot: commands.Bot):
-    await bot.add_cog(DiceRolls(bot))
+def setup(bot: commands.Bot):
+    cog = DiceRolls(bot)
+    maybe_coro = bot.add_cog(cog)
+    if asyncio.iscoroutine(maybe_coro):
+        bot.loop.create_task(maybe_coro)
