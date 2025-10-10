@@ -286,7 +286,7 @@ class CardDraws(commands.Cog):
                     draw_lines.append(f"- **{name}** — {description}")
                 else:
                     draw_lines.append(f"- **{name}**")
-            embed.add_field(name="Nouvelles tuiles", value="\n".join(draw_lines), inline=False)
+            embed.add_field(name="Tuiles", value="\n".join(draw_lines), inline=False)
         elif len(hand_snapshot) >= 5:
             footer_messages.append("Votre main est déjà complète (5 tuiles).")
         elif deck_empty_after:
