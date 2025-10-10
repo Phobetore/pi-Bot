@@ -5,7 +5,7 @@ from typing import Dict, List, Optional, Set, Tuple
 import discord
 from discord.ext import commands
 
-from main import CACHE, audit_logger
+from bot_state import CACHE, audit_logger
 
 
 class DeckManager:
