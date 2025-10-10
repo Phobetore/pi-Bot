@@ -431,6 +431,19 @@ def set_server_default_roll(guild_id: int, expression: str):
     # Petit log d'audit
     audit_logger.warning(f"Default dice roll '{expression}' set for guild {guild_id}")
 
+def is_server_allowed_for_cards(guild_id: int) -> bool:
+    """
+    Vérifie si le serveur peut utiliser les commandes de cartes.
+    Retourne True si le serveur est autorisé, False sinon.
+    """
+    if guild_id is None:
+        return False
+    card_config = CACHE.get("card_config", {}) or {}
+    allowed_server_id = card_config.get("allowed_server_id")
+    if allowed_server_id in (None, "0", ""):
+        return True
+    return str(guild_id) == str(allowed_server_id)
+
 @bot.command(name="defaultRoll")
 @commands.has_permissions(manage_guild=True)
 async def default_roll_command(ctx, *, expression: str):
@@ -587,31 +600,32 @@ async def help_command(ctx):
     )
 
     # ─────────────────────────────────────────────
-    #  7) PIOCHE / P
+    #  7) PIOCHE / P (only shown for allowed server)
     # ─────────────────────────────────────────────
-    embed.add_field(
-        name=f"🃏 **{server_prefix}pioche / {server_prefix}p** — {tr['draw_title']}",
-        value=(
-            f"{tr['draw_desc']}\n\n"
-            f"**Exemples :**\n"
-            f"```yaml\n{server_prefix}pioche\n{server_prefix}pioche 3 --priv\n```\n"
-            f"{tr['draw_private_note']}"
-        ),
-        inline=False
-    )
+    if ctx.guild and is_server_allowed_for_cards(ctx.guild.id):
+        embed.add_field(
+            name=f"🃏 **{server_prefix}pioche / {server_prefix}p** — {tr['draw_title']}",
+            value=(
+                f"{tr['draw_desc']}\n\n"
+                f"**Exemples :**\n"
+                f"```yaml\n{server_prefix}pioche\n{server_prefix}pioche 3 --priv\n```\n"
+                f"{tr['draw_private_note']}"
+            ),
+            inline=False
+        )
 
-    # ─────────────────────────────────────────────
-    #  8) RESETDECK / RD
-    # ─────────────────────────────────────────────
-    embed.add_field(
-        name=f"🆕 **{server_prefix}resetDeck / {server_prefix}rd** — {tr['resetdeck_title']}",
-        value=(
-            f"{tr['resetdeck_desc']}\n\n"
-            f"**Exemple :**\n"
-            f"```yaml\n{server_prefix}resetDeck\n```"
-        ),
-        inline=False
-    )
+        # ─────────────────────────────────────────────
+        #  8) RESETDECK / RD (only shown for allowed server)
+        # ─────────────────────────────────────────────
+        embed.add_field(
+            name=f"🆕 **{server_prefix}resetDeck / {server_prefix}rd** — {tr['resetdeck_title']}",
+            value=(
+                f"{tr['resetdeck_desc']}\n\n"
+                f"**Exemple :**\n"
+                f"```yaml\n{server_prefix}resetDeck\n```"
+            ),
+            inline=False
+        )
 
     # Footer
     embed.set_footer(text=tr["help_footer"])
