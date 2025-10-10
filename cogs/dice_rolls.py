@@ -347,5 +347,5 @@ class DiceRolls(commands.Cog):
         await ctx.send(f"🎨 Votre couleur préférée est : {color_name}.")
 
 
-def setup(bot: commands.Bot):
+async def setup(bot: commands.Bot):
     bot.add_cog(DiceRolls(bot))
