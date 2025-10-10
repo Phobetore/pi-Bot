@@ -103,8 +103,15 @@ class DeckManager:
         cls,
         guild_id: int,
         user_id: int,
+        count: Optional[int] = None,
     ) -> Tuple[List[str], List[str], bool, bool, Dict[str, List[str]]]:
-        """Draw tiles until the player's hand reaches five cards, when possible."""
+        """Draw tiles until the player's hand reaches five cards, when possible.
+        
+        Args:
+            guild_id: The guild ID
+            user_id: The user ID
+            count: Optional number of cards to draw. If None, fills hand to 5 cards.
+        """
 
         state = cls._ensure_state(guild_id, user_id)
         auto_reset = False
@@ -121,8 +128,15 @@ class DeckManager:
             if not state["deck"]:
                 return [], list(state["hand"]), auto_reset, True, state
 
-        space_in_hand = max(0, 5 - len(state["hand"]))
-        draw_count = min(space_in_hand, len(state["deck"]))
+        # Determine how many cards to draw
+        if count is not None:
+            # Draw exact count requested (up to deck size)
+            draw_count = min(count, len(state["deck"]))
+        else:
+            # Original behavior: fill hand to 5 cards
+            space_in_hand = max(0, 5 - len(state["hand"]))
+            draw_count = min(space_in_hand, len(state["deck"]))
+        
         drawn_cards: List[str] = []
 
         for _ in range(draw_count):
@@ -209,17 +223,32 @@ class CardDraws(commands.Cog):
         return str(ctx.guild.id) == allowed_server_id
 
     @staticmethod
-    def _parse_draw_flags(args: Tuple[str, ...]) -> bool:
+    def _parse_draw_flags(args: Tuple[str, ...]) -> Tuple[Optional[int], bool]:
         private = False
+        count = None
 
         for arg in args:
             normalized = arg.lower()
             if normalized in {"--priv", "--private"}:
                 private = True
                 continue
-            raise ValueError("unexpected_argument")
+            
+            # Try to parse as a number
+            try:
+                num = int(arg)
+                if num < 1:
+                    raise ValueError("invalid_count")
+                if count is not None:
+                    raise ValueError("multiple_counts")
+                count = num
+                continue
+            except ValueError as exc:
+                if str(exc) in {"invalid_count", "multiple_counts"}:
+                    raise
+                # Not a number and not --priv, so it's unexpected
+                raise ValueError("unexpected_argument")
 
-        return private
+        return count, private
 
     @staticmethod
     def _parse_play_arguments(args: Tuple[str, ...]) -> Tuple[List[int], bool]:
@@ -256,14 +285,20 @@ class CardDraws(commands.Cog):
             return
 
         try:
-            private = self._parse_draw_flags(args)
-        except ValueError:
-            await ctx.send("❌ Argument inconnu. Utilisez uniquement `--priv` pour recevoir le résultat en message privé.")
+            count, private = self._parse_draw_flags(args)
+        except ValueError as exc:
+            error_code = str(exc)
+            if error_code == "invalid_count":
+                await ctx.send("❌ Le nombre de cartes doit être supérieur à 0.")
+            elif error_code == "multiple_counts":
+                await ctx.send("❌ Vous ne pouvez spécifier qu'un seul nombre de cartes à piocher.")
+            else:
+                await ctx.send("❌ Argument inconnu. Utilisez `!pioche [nombre] [--priv]` (ex. `!pioche 3 --priv`).")
             return
 
         async with DeckManager._lock:
             drawn_cards, hand_snapshot, auto_reset, deck_empty_after, state = DeckManager.draw_hand(
-                ctx.guild.id, ctx.author.id
+                ctx.guild.id, ctx.author.id, count
             )
 
         if not drawn_cards and not hand_snapshot and not state.get("deck") and not state.get("discard"):
@@ -287,10 +322,18 @@ class CardDraws(commands.Cog):
                 else:
                     draw_lines.append(f"- **{name}**")
             embed.add_field(name="Tuiles", value="\n".join(draw_lines), inline=False)
-        elif len(hand_snapshot) >= 5:
-            footer_messages.append("Votre main est déjà complète (5 tuiles).")
-        elif deck_empty_after:
-            footer_messages.append("Le paquet ne contient plus assez de tuiles pour compléter votre main.")
+        else:
+            # No cards were drawn
+            if count is not None:
+                # Specific count was requested but nothing drawn
+                if deck_empty_after or len(state.get("deck", [])) == 0:
+                    footer_messages.append("Le paquet est vide, aucune carte à piocher.")
+                else:
+                    footer_messages.append("Aucune carte n'a pu être piochée.")
+            elif len(hand_snapshot) >= 5:
+                footer_messages.append("Votre main est déjà complète (5 tuiles).")
+            elif deck_empty_after:
+                footer_messages.append("Le paquet ne contient plus assez de tuiles pour compléter votre main.")
 
         if hand_snapshot:
             hand_lines = []
