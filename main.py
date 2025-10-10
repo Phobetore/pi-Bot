@@ -4,6 +4,7 @@ import json
 import logging
 import os
 import asyncio
+import inspect
 import time
 
 # ─────────────────────────────────────────────
@@ -421,12 +422,11 @@ async def help_command(ctx):
     Affiche une documentation plus lisible sur les commandes disponibles.
     """
     # Détermination de la langue
-    guild_lang = get_server_language(ctx.guild.id)
+    guild_lang = get_server_language(ctx.guild.id) if ctx.guild else "en"
     tr = TRANSLATIONS.get(guild_lang, TRANSLATIONS["en"])
 
     # Récupère le préfixe du serveur
-    from main import get_server_prefix
-    server_prefix = get_server_prefix(bot, ctx.message)
+    server_prefix = (ctx.clean_prefix or config["prefix"]).strip()
 
     # Couleur et création de l'embed
     embed_color = discord.Color.purple()
@@ -561,11 +561,16 @@ async def help_command(ctx):
 #          CHARGEMENT DU COG
 # ─────────────────────────────────────────────
 startup_extensions = ["cogs.dice_rolls", "cogs.card_draws"]
-for extension in startup_extensions:
-    try:
-        bot.load_extension(extension)
-    except Exception as e:
-        audit_logger.error(f"Error loading extension {extension}: {e}")
+
+
+async def load_startup_extensions():
+    for extension in startup_extensions:
+        try:
+            maybe_coro = bot.load_extension(extension)
+            if inspect.isawaitable(maybe_coro):
+                await maybe_coro
+        except Exception as e:
+            audit_logger.error(f"Error loading extension {extension}: {e}")
 
 # ─────────────────────────────────────────────
 #          ARRÊT PROPRE DU BOT
@@ -583,9 +588,15 @@ async def stop_bot(ctx):
 # ─────────────────────────────────────────────
 #          LANCEMENT DU BOT
 # ─────────────────────────────────────────────
-try:
-    bot.run(config["token"])
-finally:
-    if periodic_saver.is_running():
-        periodic_saver.cancel()
-    save_cache_to_json_files()
+async def run_bot():
+    try:
+        await load_startup_extensions()
+        await bot.start(config["token"])
+    finally:
+        if periodic_saver.is_running():
+            periodic_saver.cancel()
+        await save_cache_to_json_files()
+
+
+if __name__ == "__main__":
+    asyncio.run(run_bot())
