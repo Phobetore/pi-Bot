@@ -467,7 +467,9 @@ startup_extensions = ["cogs.dice_rolls", "cogs.card_draws"]
 async def load_startup_extensions():
     for extension in startup_extensions:
         try:
-            await bot.load_extension(extension)
+            result = bot.load_extension(extension)
+            if asyncio.iscoroutine(result):
+                await result
         except Exception as e:
             audit_logger.error(f"Error loading extension {extension}: {e}")
 
