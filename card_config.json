@@ -3,45 +3,98 @@
   "admin_users": [],
   "cards": [
     {
-      "id": "card_a",
-      "name": "Carte A",
+      "id": "fireball",
+      "name": "Boule de Feu",
       "image": null,
-      "description": "Carte de démonstration A"
+      "description": "Retire deux tuiles du deck adverse. Inflige Volonté × 0,5 en dégâts et applique Traitement × 0,5 en vitesse. Largeur 2,5 m, malus d'évitement de 5 %.",
+      "category": "Attaque",
+      "values": {
+        "degats": "Volonté × 0,5",
+        "vitesse": "Traitement × 0,5",
+        "largeur": "2,5 m",
+        "malus_evitement": "5 %"
+      },
+      "effects": [
+        "Retire deux tuiles du deck adverse.",
+        "Les effets se matérialisent dans la réalité; l'utilisateur subit ses propres dégâts si l'adversaire est encore debout lorsque le deck est vide."
+      ],
+      "price": {
+        "standard": 30,
+        "deluxe": 150
+      }
     },
     {
-      "id": "card_b",
-      "name": "Carte B",
+      "id": "wind_gust",
+      "name": "Bourrasque",
       "image": null,
-      "description": "Carte de démonstration B"
+      "description": "Renvoie un projectile à la moitié de sa puissance (fonctionne sur les attaques ≤ Volonté × 0,5). Contre automatiquement les Boules de Feu et retire une tuile du deck adverse.",
+      "category": "Défense",
+      "values": {
+        "renvoi": "½ de la puissance subie",
+        "seuil": "Attaques ≤ Volonté × 0,5"
+      },
+      "effects": [
+        "Protège contre Boule de Feu et retire une tuile du deck adverse.",
+        "Ne fonctionne que si la puissance adverse est inférieure ou égale au seuil indiqué."
+      ],
+      "price": {
+        "standard": 30,
+        "deluxe": 150
+      }
     },
     {
-      "id": "card_c",
-      "name": "Carte C",
+      "id": "ice_spike",
+      "name": "Pique de Givre",
       "image": null,
-      "description": "Carte de démonstration C"
+      "description": "Ignore les défenses et inflige Volonté × 0,25 en dégâts avec une vitesse Traitement × 0,5. Retire une tuile du deck adverse.",
+      "category": "Attaque",
+      "values": {
+        "degats": "Volonté × 0,25",
+        "vitesse": "Traitement × 0,5"
+      },
+      "effects": [
+        "Ignore les défenses.",
+        "Retire une tuile du deck adverse."
+      ],
+      "price": {
+        "standard": 30,
+        "deluxe": 150
+      }
     },
     {
-      "id": "card_d",
-      "name": "Carte D",
+      "id": "earth_wall",
+      "name": "Mur de Terre",
       "image": null,
-      "description": "Carte de démonstration D"
+      "description": "Mur défensif qui bloque tous les types d'attaque avec une force égale à Volonté × 0,5.",
+      "category": "Défense",
+      "values": {
+        "blocage": "Volonté × 0,5"
+      },
+      "effects": [
+        "Peut bloquer tout type d'attaque.",
+        "Annule les dégâts reçus tant que la force du mur n'est pas dépassée."
+      ],
+      "price": {
+        "standard": 30,
+        "deluxe": 150
+      }
     }
   ],
   "default_deck": [
     {
-      "card_id": "card_a",
+      "card_id": "fireball",
       "count": 5
     },
     {
-      "card_id": "card_b",
+      "card_id": "wind_gust",
       "count": 5
     },
     {
-      "card_id": "card_c",
+      "card_id": "ice_spike",
       "count": 5
     },
     {
-      "card_id": "card_d",
+      "card_id": "earth_wall",
       "count": 5
     }
   ],
