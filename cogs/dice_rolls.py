@@ -7,7 +7,13 @@ from typing import Optional, List, Tuple
 import logging
 import asyncio
 
-from main import CACHE, audit_logger, get_server_language, TRANSLATIONS
+from bot_state import (
+    CACHE,
+    TRANSLATIONS,
+    audit_logger,
+    get_server_default_roll,
+    get_server_language,
+)
 
 
 # ─────────────────────────────────────────────
@@ -242,7 +248,6 @@ class DiceRolls(commands.Cog):
             !r CibleUnique  (utilise le jet par défaut si défini)
         """
         try:
-            from main import get_server_default_roll
             default_roll = get_server_default_roll(ctx.guild.id)
 
             if not args:
