@@ -455,5 +455,5 @@ class CardDraws(commands.Cog):
                 )
             except discord.Forbidden:
                 pass
-def setup(bot: commands.Bot):
+async def setup(bot: commands.Bot):
     bot.add_cog(CardDraws(bot))
