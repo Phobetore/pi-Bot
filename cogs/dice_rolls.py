@@ -310,6 +310,12 @@ class DiceRolls(commands.Cog):
                 allowed_mentions=discord.AllowedMentions(users=True)
             )
 
+            # Suppression du message de commande initial après un jet réussi.
+            try:
+                await ctx.message.delete()
+            except (discord.Forbidden, discord.HTTPException):
+                pass
+
         except ValueError as e:
             await ctx.send(f"❌ {e}")
         except commands.CommandError as ce:
