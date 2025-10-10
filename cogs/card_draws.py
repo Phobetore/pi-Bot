@@ -1,6 +1,6 @@
 import asyncio
 import random
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional, Set, Tuple
 
 import discord
 from discord.ext import commands
@@ -66,56 +66,129 @@ class DeckManager:
         return deck
 
     @classmethod
-    def _get_guild_state(cls, guild_id: int) -> Dict[str, List[str]]:
+    def _get_guild_state(cls, guild_id: int) -> Dict[str, Dict[str, List[str]]]:
         guild_states = CACHE.setdefault("card_states", {})
         return guild_states.setdefault(str(guild_id), {})
 
     @classmethod
-    def reset_deck(cls, guild_id: int, user_id: int) -> Tuple[List[str], bool]:
-        """Reset the deck for the given user. Returns the deck and a boolean indicating success."""
-        deck = cls._build_deck(user_id)
+    def _ensure_state(cls, guild_id: int, user_id: int) -> Dict[str, List[str]]:
         states = cls._get_guild_state(guild_id)
-        states[str(user_id)] = deck
-        return deck, bool(deck)
+        state = states.get(str(user_id))
+
+        if isinstance(state, list):
+            # Legacy format: only the deck list was stored.
+            state = {"deck": state, "hand": [], "discard": []}
+        elif state is None or not isinstance(state, dict):
+            state = {"deck": [], "hand": [], "discard": []}
+
+        state.setdefault("deck", [])
+        state.setdefault("hand", [])
+        state.setdefault("discard", [])
+
+        states[str(user_id)] = state
+        return state
 
     @classmethod
-    def draw_cards(
+    def reset_deck(cls, guild_id: int, user_id: int) -> Tuple[Dict[str, List[str]], bool]:
+        """Reset the deck and clear the current hand/discard for the given user."""
+
+        deck = cls._build_deck(user_id)
+        states = cls._get_guild_state(guild_id)
+        state = {"deck": deck, "hand": [], "discard": []}
+        states[str(user_id)] = state
+        return state, bool(deck)
+
+    @classmethod
+    def draw_hand(
         cls,
         guild_id: int,
         user_id: int,
-        requested_count: int,
-    ) -> Tuple[List[str], bool, bool, bool]:
-        """
-        Draw cards from the user's deck.
+    ) -> Tuple[List[str], List[str], bool, bool, Dict[str, List[str]]]:
+        """Draw tiles until the player's hand reaches five cards, when possible."""
 
-        Returns a tuple of:
-            (drawn_cards, auto_reset, partial_draw, deck_empty_after)
-        """
-
-        states = cls._get_guild_state(guild_id)
-        deck = states.get(str(user_id))
+        state = cls._ensure_state(guild_id, user_id)
         auto_reset = False
 
-        if not deck:
-            deck, has_cards = cls.reset_deck(guild_id, user_id)
+        if not state["deck"] and not state["hand"]:
+            if state["discard"]:
+                # Deck exhausted – no automatic reset.
+                return [], list(state["hand"]), False, True, state
+
+            state["deck"] = cls._build_deck(user_id)
+            state["discard"] = []
             auto_reset = True
-            if not has_cards:
-                return [], auto_reset, False, True
 
-        available_before = len(deck)
-        draw_count = min(requested_count, available_before)
+            if not state["deck"]:
+                return [], list(state["hand"]), auto_reset, True, state
 
-        drawn_cards = [deck.pop() for _ in range(draw_count)]
-        deck_empty_after = len(deck) == 0
-        partial_draw = draw_count < requested_count
+        space_in_hand = max(0, 5 - len(state["hand"]))
+        draw_count = min(space_in_hand, len(state["deck"]))
+        drawn_cards: List[str] = []
 
-        return drawn_cards, auto_reset, partial_draw, deck_empty_after
+        for _ in range(draw_count):
+            drawn_cards.append(state["deck"].pop())
+
+        state["hand"].extend(drawn_cards)
+        deck_empty_after = len(state["deck"]) == 0
+
+        return drawn_cards, list(state["hand"]), auto_reset, deck_empty_after, state
+
+    @classmethod
+    def play_cards_by_indices(
+        cls,
+        guild_id: int,
+        user_id: int,
+        indices: List[int],
+    ) -> Tuple[List[str], List[str], bool, Dict[str, List[str]]]:
+        """Remove up to three tiles from the player's hand based on their position."""
+
+        if not indices:
+            raise ValueError("no_indices")
+        if len(indices) > 3:
+            raise ValueError("too_many")
+
+        state = cls._ensure_state(guild_id, user_id)
+        hand = state["hand"]
+
+        if not hand:
+            raise ValueError("empty_hand")
+
+        unique_order: List[int] = []
+        seen: Set[int] = set()
+        for raw_index in indices:
+            try:
+                index_value = int(raw_index)
+            except (TypeError, ValueError) as exc:
+                raise ValueError("invalid_index") from exc
+
+            if index_value < 1 or index_value > len(hand):
+                raise ValueError("out_of_range")
+            if index_value in seen:
+                raise ValueError("duplicate_index")
+            seen.add(index_value)
+            unique_order.append(index_value)
+
+        extracted: List[Tuple[int, str]] = []
+        for index_value in sorted(unique_order, reverse=True):
+            card_id = hand.pop(index_value - 1)
+            extracted.append((index_value, card_id))
+
+        extracted.sort(key=lambda pair: unique_order.index(pair[0]))
+        played_cards = [card_id for _, card_id in extracted]
+        state["discard"].extend(played_cards)
+        deck_empty_after = len(state["deck"]) == 0
+
+        return played_cards, list(state["hand"]), deck_empty_after, state
 
     @classmethod
     def get_remaining_cards(cls, guild_id: int, user_id: int) -> int:
-        states = cls._get_guild_state(guild_id)
-        deck = states.get(str(user_id), [])
-        return len(deck)
+        state = cls._ensure_state(guild_id, user_id)
+        return len(state["deck"])
+
+    @classmethod
+    def get_hand(cls, guild_id: int, user_id: int) -> List[str]:
+        state = cls._ensure_state(guild_id, user_id)
+        return list(state["hand"])
 
     @classmethod
     def get_card_info(cls, card_id: str) -> Dict:
@@ -136,8 +209,7 @@ class CardDraws(commands.Cog):
         return str(ctx.guild.id) == allowed_server_id
 
     @staticmethod
-    def _parse_arguments(args: Tuple[str, ...]) -> Tuple[int, bool]:
-        count: Optional[int] = None
+    def _parse_draw_flags(args: Tuple[str, ...]) -> bool:
         private = False
 
         for arg in args:
@@ -145,79 +217,195 @@ class CardDraws(commands.Cog):
             if normalized in {"--priv", "--private"}:
                 private = True
                 continue
+            raise ValueError("unexpected_argument")
 
-            if count is None:
-                try:
-                    count = int(arg)
-                except ValueError as exc:
-                    raise ValueError("invalid_number") from exc
-            else:
-                raise ValueError("too_many_args")
+        return private
 
-        if count is None:
-            count = 1
+    @staticmethod
+    def _parse_play_arguments(args: Tuple[str, ...]) -> Tuple[List[int], bool]:
+        private = False
+        indices: List[int] = []
 
-        if count <= 0:
-            raise ValueError("non_positive")
+        for arg in args:
+            normalized = arg.lower()
+            if normalized in {"--priv", "--private"}:
+                private = True
+                continue
 
-        return count, private
+            try:
+                index_value = int(arg)
+            except ValueError as exc:
+                raise ValueError("invalid_index") from exc
+
+            indices.append(index_value)
+
+        if not indices:
+            raise ValueError("no_indices")
+        if len(indices) > 3:
+            raise ValueError("too_many")
+
+        return indices, private
 
     @commands.command(name="pioche", aliases=["p"])
     @commands.cooldown(1, 3, commands.BucketType.user)
     async def draw_cards(self, ctx: commands.Context, *args: str):
-        """Draw one or multiple cards from the caller's personal deck."""
+        """Draw tiles to fill the player's hand up to five cards."""
 
         if not self._is_server_allowed(ctx):
             await ctx.send("❌ Cette commande n'est pas disponible sur ce serveur.")
             return
 
         try:
-            count, private = self._parse_arguments(args)
-        except ValueError as exc:
-            error_code = str(exc)
-            if error_code == "invalid_number":
-                await ctx.send("❌ Veuillez indiquer un nombre valide de cartes à piocher.")
-            elif error_code == "too_many_args":
-                await ctx.send("❌ Trop d'arguments fournis. Exemple : `!pioche 3 --priv`.")
-            else:
-                await ctx.send("❌ Le nombre de cartes doit être strictement positif.")
+            private = self._parse_draw_flags(args)
+        except ValueError:
+            await ctx.send("❌ Argument inconnu. Utilisez uniquement `--priv` pour recevoir le résultat en message privé.")
             return
 
         async with DeckManager._lock:
-            drawn_cards, auto_reset, partial_draw, deck_empty_after = DeckManager.draw_cards(
-                ctx.guild.id, ctx.author.id, count
+            drawn_cards, hand_snapshot, auto_reset, deck_empty_after, state = DeckManager.draw_hand(
+                ctx.guild.id, ctx.author.id
             )
 
-        if not drawn_cards:
-            await ctx.send("❌ Aucune carte n'a pu être piochée. Vérifiez la configuration du paquet.")
+        if not drawn_cards and not hand_snapshot and not state.get("deck") and not state.get("discard"):
+            await ctx.send("❌ Le paquet configuré est vide. Vérifiez la configuration des tuiles.")
             return
 
-        card_details = [DeckManager.get_card_info(card_id) for card_id in drawn_cards]
-        description_lines = [f"- {card.get('name', card.get('id', 'Carte'))}" for card in card_details]
-        description = "\n".join(description_lines)
-
-        title = "🃏 Résultat de la pioche"
+        embed = discord.Embed(title="🪄 Pioche des Tuiles", color=discord.Color.blurple())
         footer_messages: List[str] = []
 
         if auto_reset:
-            footer_messages.append("Le paquet était vide et a été reconstitué automatiquement.")
-        if partial_draw:
-            footer_messages.append("Le paquet ne contenait pas assez de cartes pour ce tirage.")
-        if deck_empty_after:
-            footer_messages.append("Le paquet est maintenant vide.")
+            footer_messages.append("Un nouveau paquet a été constitué et mélangé.")
 
-        embed = discord.Embed(title=title, description=description, color=discord.Color.blurple())
+        if drawn_cards:
+            draw_lines = []
+            for card_id in drawn_cards:
+                card = DeckManager.get_card_info(card_id)
+                name = card.get("name", card.get("id", "Tuile"))
+                description = card.get("description")
+                if description:
+                    draw_lines.append(f"- **{name}** — {description}")
+                else:
+                    draw_lines.append(f"- **{name}**")
+            embed.add_field(name="Nouvelles tuiles", value="\n".join(draw_lines), inline=False)
+        elif len(hand_snapshot) >= 5:
+            footer_messages.append("Votre main est déjà complète (5 tuiles).")
+        elif deck_empty_after:
+            footer_messages.append("Le paquet ne contient plus assez de tuiles pour compléter votre main.")
 
-        if len(card_details) == 1:
-            card = card_details[0]
-            image_url = card.get("image")
-            if image_url:
-                embed.set_thumbnail(url=image_url)
-            if card.get("description"):
-                embed.add_field(name="Description", value=card["description"], inline=False)
+        if hand_snapshot:
+            hand_lines = []
+            for index, card_id in enumerate(hand_snapshot, start=1):
+                card = DeckManager.get_card_info(card_id)
+                hand_lines.append(f"{index}. {card.get('name', card.get('id', 'Tuile'))}")
+            embed.add_field(name="Main actuelle", value="\n".join(hand_lines), inline=False)
+        else:
+            embed.add_field(name="Main actuelle", value="(aucune tuile en main)", inline=False)
+
+        deck_remaining = len(state.get("deck", []))
+        discard_count = len(state.get("discard", []))
+        embed.add_field(name="Tuiles restantes", value=str(deck_remaining), inline=True)
+        embed.add_field(name="Tuiles défaussées", value=str(discard_count), inline=True)
+
+        if hand_snapshot:
+            embed.add_field(
+                name="Action du tour",
+                value="Utilisez `!joue <indices>` pour aligner jusqu'à trois tuiles (ex. `!joue 1 3`).",
+                inline=False,
+            )
+
+        if deck_empty_after and deck_remaining == 0:
+            footer_messages.append("Le paquet est vide. Si l'affrontement continue, utilisez `!resetDeck` pour recommencer.")
 
         if footer_messages:
             embed.set_footer(text=" ".join(footer_messages))
+
+        if private:
+            try:
+                await ctx.author.send(embed=embed)
+            except discord.Forbidden:
+                await ctx.send("⚠️ Impossible d'envoyer un message privé. Merci d'autoriser les DM du serveur.")
+                return
+
+            await ctx.send("📬 Résultat envoyé en message privé.")
+        else:
+            await ctx.send(embed=embed)
+
+    @commands.command(name="joue", aliases=["playtiles", "playtile"])
+    @commands.cooldown(1, 3, commands.BucketType.user)
+    async def play_tiles(self, ctx: commands.Context, *args: str):
+        """Play up to three tiles from the current hand using their displayed indices."""
+
+        if not self._is_server_allowed(ctx):
+            await ctx.send("❌ Cette commande n'est pas disponible sur ce serveur.")
+            return
+
+        try:
+            indices, private = self._parse_play_arguments(args)
+        except ValueError as exc:
+            error_code = str(exc)
+            if error_code == "no_indices":
+                await ctx.send("❌ Indiquez les positions des tuiles à utiliser (ex. `!joue 1 2`).")
+            elif error_code == "invalid_index":
+                await ctx.send("❌ Les positions doivent être des nombres valides.")
+            elif error_code == "too_many":
+                await ctx.send("❌ Vous ne pouvez aligner que trois tuiles par tour.")
+            else:
+                await ctx.send("❌ Paramètres invalides pour la commande `!joue`.")
+            return
+
+        async with DeckManager._lock:
+            try:
+                played_cards, hand_snapshot, deck_empty_after, state = DeckManager.play_cards_by_indices(
+                    ctx.guild.id, ctx.author.id, indices
+                )
+            except ValueError as exc:
+                error_code = str(exc)
+                if error_code == "no_indices":
+                    await ctx.send("❌ Indiquez au moins une tuile à utiliser.")
+                elif error_code == "too_many":
+                    await ctx.send("❌ Vous ne pouvez aligner que trois tuiles par tour.")
+                elif error_code == "empty_hand":
+                    await ctx.send("❌ Votre main est vide. Utilisez `!pioche` pour récupérer des tuiles.")
+                elif error_code == "out_of_range":
+                    await ctx.send("❌ L'une des positions demandées n'existe pas dans votre main actuelle.")
+                elif error_code == "duplicate_index":
+                    await ctx.send("❌ Chaque position ne peut être utilisée qu'une seule fois par commande.")
+                else:
+                    await ctx.send("❌ Impossible d'utiliser ces tuiles pour le moment.")
+                return
+
+        card_details = [DeckManager.get_card_info(card_id) for card_id in played_cards]
+        lines = []
+        for card in card_details:
+            name = card.get("name", card.get("id", "Tuile"))
+            description = card.get("description")
+            if description:
+                lines.append(f"- **{name}** — {description}")
+            else:
+                lines.append(f"- **{name}**")
+
+        embed = discord.Embed(title="⚔️ Tuiles alignées", color=discord.Color.orange())
+        embed.add_field(name="Résolution", value="\n".join(lines), inline=False)
+
+        if hand_snapshot:
+            hand_lines = []
+            for index, card_id in enumerate(hand_snapshot, start=1):
+                card = DeckManager.get_card_info(card_id)
+                hand_lines.append(f"{index}. {card.get('name', card.get('id', 'Tuile'))}")
+            embed.add_field(name="Main restante", value="\n".join(hand_lines), inline=False)
+        else:
+            embed.add_field(name="Main restante", value="(aucune tuile en main)", inline=False)
+
+        deck_remaining = len(state.get("deck", []))
+        discard_count = len(state.get("discard", []))
+        embed.add_field(name="Tuiles restantes", value=str(deck_remaining), inline=True)
+        embed.add_field(name="Tuiles défaussées", value=str(discard_count), inline=True)
+
+        footer_messages: List[str] = ["Utilisez `!pioche` pour compléter votre main jusqu'à cinq tuiles."]
+        if deck_empty_after and deck_remaining == 0:
+            footer_messages.append("Le paquet est désormais vide. Pensez à `!resetDeck` si une nouvelle manche débute.")
+
+        embed.set_footer(text=" ".join(footer_messages))
 
         if private:
             try:
@@ -247,19 +435,23 @@ class CardDraws(commands.Cog):
             return
 
         async with DeckManager._lock:
-            deck, has_cards = DeckManager.reset_deck(ctx.guild.id, target.id)
+            _, has_cards = DeckManager.reset_deck(ctx.guild.id, target.id)
 
         if not has_cards:
-            await ctx.send("❌ Le paquet configuré est vide. Vérifiez la configuration des cartes.")
+            await ctx.send("❌ Le paquet configuré est vide. Vérifiez la configuration des tuiles.")
             return
 
         if target == ctx.author:
-            await ctx.send("🆕 Votre paquet a été reconstitué et mélangé.")
+            await ctx.send(
+                "🆕 Votre paquet a été reconstitué et mélangé. Utilisez `!pioche` pour récupérer une main de cinq tuiles."
+            )
         else:
-            await ctx.send(f"🆕 Le paquet de {target.mention} a été reconstitué et mélangé.")
+            await ctx.send(
+                f"🆕 Le paquet de {target.mention} a été reconstitué et mélangé. Invitez-le à utiliser `!pioche` pour reformer sa main."
+            )
             try:
                 await target.send(
-                    f"🃏 Votre paquet de cartes a été réinitialisé par {ctx.author.display_name}."
+                    f"🃏 Votre paquet de tuiles a été réinitialisé par {ctx.author.display_name}."
                 )
             except discord.Forbidden:
                 pass
