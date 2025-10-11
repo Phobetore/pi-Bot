@@ -5,7 +5,179 @@ from typing import Dict, List, Optional, Set, Tuple
 import discord
 from discord.ext import commands
 
-from bot_state import CACHE, audit_logger
+from bot_state import CACHE, audit_logger, config, get_server_language
+
+
+CARD_TRANSLATIONS: Dict[str, Dict[str, str]] = {
+    "en": {
+        "not_available": "❌ This command is not available on this server.",
+        "draw_invalid_count": "❌ The number of cards must be greater than 0.",
+        "draw_multiple_counts": "❌ You can only specify one number of cards to draw.",
+        "draw_unexpected_argument": "❌ Unknown argument. Use `{prefix}pioche [number] [--priv]` (e.g. `{prefix}pioche 3 --priv`).",
+        "deck_empty_config": "❌ The configured deck is empty. Check the tile configuration.",
+        "draw_embed_title": "🪄 Tile Draw",
+        "auto_reset_footer": "A new deck has been built and shuffled.",
+        "field_tiles": "Tiles",
+        "default_card_name": "Tile",
+        "draw_deck_empty": "The deck is empty, no cards left to draw.",
+        "draw_none": "No card could be drawn.",
+        "draw_hand_full": "Your hand is already full (5 tiles).",
+        "draw_deck_not_enough": "The deck does not contain enough tiles to fill your hand.",
+        "field_hand": "Current hand",
+        "hand_empty": "(no tiles in hand)",
+        "field_remaining": "Remaining tiles",
+        "field_discard": "Discarded tiles",
+        "field_turn_action": "Turn action",
+        "turn_action_value": "Use `{prefix}joue <indexes>` to align up to three tiles (e.g. `{prefix}joue 1 3`).",
+        "draw_deck_empty_footer": "The deck is empty. If the encounter continues, use `{prefix}resetDeck` to start again.",
+        "dm_failed": "⚠️ Unable to send a private message. Please allow DMs from the server.",
+        "dm_sent": "📬 Result sent via private message.",
+        "play_missing_indices": "❌ Provide the positions of the tiles to use (e.g. `{prefix}joue 1 2`).",
+        "play_invalid_index": "❌ Positions must be valid numbers.",
+        "play_too_many": "❌ You can only align three tiles per turn.",
+        "play_invalid_parameters": "❌ Invalid parameters for the `{prefix}joue` command.",
+        "play_no_indices": "❌ Provide at least one tile to use.",
+        "play_empty_hand": "❌ Your hand is empty. Use `{prefix}pioche` to draw tiles.",
+        "play_out_of_range": "❌ One of the requested positions does not exist in your current hand.",
+        "play_duplicate_index": "❌ Each position can be used only once per command.",
+        "play_generic_error": "❌ Unable to use these tiles at the moment.",
+        "play_embed_title": "⚔️ Tiles aligned",
+        "field_resolution": "Resolution",
+        "field_remaining_hand": "Remaining hand",
+        "footer_draw_prompt": "Use `{prefix}pioche` to refill your hand up to five tiles.",
+        "play_deck_empty_footer": "The deck is now empty. Consider `{prefix}resetDeck` if a new round begins.",
+        "reset_not_allowed": "⛔ This action is reserved for authorised administrators.",
+        "reset_self": "🆕 Your deck has been rebuilt and shuffled. Use `{prefix}pioche` to draw a five-tile hand.",
+        "reset_other": "🆕 {mention}'s deck has been rebuilt and shuffled. Invite them to use `{prefix}pioche` to rebuild their hand.",
+        "reset_dm": "🃏 Your tile deck was reset by {actor}.",
+    },
+    "fr": {
+        "not_available": "❌ Cette commande n'est pas disponible sur ce serveur.",
+        "draw_invalid_count": "❌ Le nombre de cartes doit être supérieur à 0.",
+        "draw_multiple_counts": "❌ Vous ne pouvez spécifier qu'un seul nombre de cartes à piocher.",
+        "draw_unexpected_argument": "❌ Argument inconnu. Utilisez `{prefix}pioche [nombre] [--priv]` (ex. `{prefix}pioche 3 --priv`).",
+        "deck_empty_config": "❌ Le paquet configuré est vide. Vérifiez la configuration des tuiles.",
+        "draw_embed_title": "🪄 Pioche des Tuiles",
+        "auto_reset_footer": "Un nouveau paquet a été constitué et mélangé.",
+        "field_tiles": "Tuiles",
+        "default_card_name": "Tuile",
+        "draw_deck_empty": "Le paquet est vide, aucune carte à piocher.",
+        "draw_none": "Aucune carte n'a pu être piochée.",
+        "draw_hand_full": "Votre main est déjà complète (5 tuiles).",
+        "draw_deck_not_enough": "Le paquet ne contient plus assez de tuiles pour compléter votre main.",
+        "field_hand": "Main actuelle",
+        "hand_empty": "(aucune tuile en main)",
+        "field_remaining": "Tuiles restantes",
+        "field_discard": "Tuiles défaussées",
+        "field_turn_action": "Action du tour",
+        "turn_action_value": "Utilisez `{prefix}joue <indices>` pour aligner jusqu'à trois tuiles (ex. `{prefix}joue 1 3`).",
+        "draw_deck_empty_footer": "Le paquet est vide. Si l'affrontement continue, utilisez `{prefix}resetDeck` pour recommencer.",
+        "dm_failed": "⚠️ Impossible d'envoyer un message privé. Merci d'autoriser les DM du serveur.",
+        "dm_sent": "📬 Résultat envoyé en message privé.",
+        "play_missing_indices": "❌ Indiquez les positions des tuiles à utiliser (ex. `{prefix}joue 1 2`).",
+        "play_invalid_index": "❌ Les positions doivent être des nombres valides.",
+        "play_too_many": "❌ Vous ne pouvez aligner que trois tuiles par tour.",
+        "play_invalid_parameters": "❌ Paramètres invalides pour la commande `{prefix}joue`.",
+        "play_no_indices": "❌ Indiquez au moins une tuile à utiliser.",
+        "play_empty_hand": "❌ Votre main est vide. Utilisez `{prefix}pioche` pour récupérer des tuiles.",
+        "play_out_of_range": "❌ L'une des positions demandées n'existe pas dans votre main actuelle.",
+        "play_duplicate_index": "❌ Chaque position ne peut être utilisée qu'une seule fois par commande.",
+        "play_generic_error": "❌ Impossible d'utiliser ces tuiles pour le moment.",
+        "play_embed_title": "⚔️ Tuiles alignées",
+        "field_resolution": "Résolution",
+        "field_remaining_hand": "Main restante",
+        "footer_draw_prompt": "Utilisez `{prefix}pioche` pour compléter votre main jusqu'à cinq tuiles.",
+        "play_deck_empty_footer": "Le paquet est désormais vide. Pensez à `{prefix}resetDeck` si une nouvelle manche débute.",
+        "reset_not_allowed": "⛔ Cette action est réservée aux administrateurs autorisés.",
+        "reset_self": "🆕 Votre paquet a été reconstitué et mélangé. Utilisez `{prefix}pioche` pour récupérer une main de cinq tuiles.",
+        "reset_other": "🆕 Le paquet de {mention} a été reconstitué et mélangé. Invitez-le à utiliser `{prefix}pioche` pour reformer sa main.",
+        "reset_dm": "🃏 Votre paquet de tuiles a été réinitialisé par {actor}.",
+    },
+    "de": {
+        "not_available": "❌ Dieser Befehl ist auf diesem Server nicht verfügbar.",
+        "draw_invalid_count": "❌ Die Anzahl der Karten muss größer als 0 sein.",
+        "draw_multiple_counts": "❌ Du kannst nur eine Anzahl an Karten zum Ziehen angeben.",
+        "draw_unexpected_argument": "❌ Unbekanntes Argument. Verwende `{prefix}pioche [Anzahl] [--priv]` (z. B. `{prefix}pioche 3 --priv`).",
+        "deck_empty_config": "❌ Das konfigurierte Deck ist leer. Überprüfe die Karteneinstellungen.",
+        "draw_embed_title": "🪄 Karten ziehen",
+        "auto_reset_footer": "Ein neues Deck wurde erstellt und gemischt.",
+        "field_tiles": "Karten",
+        "default_card_name": "Karte",
+        "draw_deck_empty": "Das Deck ist leer, keine Karten zum Ziehen.",
+        "draw_none": "Es konnte keine Karte gezogen werden.",
+        "draw_hand_full": "Deine Hand ist bereits voll (5 Karten).",
+        "draw_deck_not_enough": "Im Deck sind nicht genug Karten, um deine Hand zu füllen.",
+        "field_hand": "Aktuelle Hand",
+        "hand_empty": "(keine Karten auf der Hand)",
+        "field_remaining": "Verbleibende Karten",
+        "field_discard": "Abgeworfene Karten",
+        "field_turn_action": "Aktion in diesem Zug",
+        "turn_action_value": "Verwende `{prefix}joue <Positionen>`, um bis zu drei Karten auszuspielen (z. B. `{prefix}joue 1 3`).",
+        "draw_deck_empty_footer": "Das Deck ist leer. Falls der Kampf weitergeht, nutze `{prefix}resetDeck`, um neu zu beginnen.",
+        "dm_failed": "⚠️ Private Nachricht konnte nicht gesendet werden. Bitte erlaube Server-DMs.",
+        "dm_sent": "📬 Ergebnis per privater Nachricht gesendet.",
+        "play_missing_indices": "❌ Gib die Positionen der Karten an (z. B. `{prefix}joue 1 2`).",
+        "play_invalid_index": "❌ Die Positionen müssen gültige Zahlen sein.",
+        "play_too_many": "❌ Du kannst pro Zug nur drei Karten ausspielen.",
+        "play_invalid_parameters": "❌ Ungültige Parameter für den Befehl `{prefix}joue`.",
+        "play_no_indices": "❌ Gib mindestens eine Karte an, die du ausspielen möchtest.",
+        "play_empty_hand": "❌ Deine Hand ist leer. Verwende `{prefix}pioche`, um Karten zu ziehen.",
+        "play_out_of_range": "❌ Eine der angegebenen Positionen existiert nicht in deiner aktuellen Hand.",
+        "play_duplicate_index": "❌ Jede Position kann pro Befehl nur einmal genutzt werden.",
+        "play_generic_error": "❌ Diese Karten können derzeit nicht genutzt werden.",
+        "play_embed_title": "⚔️ Ausgespielte Karten",
+        "field_resolution": "Auflösung",
+        "field_remaining_hand": "Verbleibende Hand",
+        "footer_draw_prompt": "Verwende `{prefix}pioche`, um deine Hand wieder auf fünf Karten zu füllen.",
+        "play_deck_empty_footer": "Das Deck ist jetzt leer. Erwäge `{prefix}resetDeck`, wenn eine neue Runde beginnt.",
+        "reset_not_allowed": "⛔ Diese Aktion ist nur für autorisierte Administratoren.",
+        "reset_self": "🆕 Dein Deck wurde neu aufgebaut und gemischt. Verwende `{prefix}pioche`, um wieder fünf Karten zu ziehen.",
+        "reset_other": "🆕 Das Deck von {mention} wurde neu aufgebaut und gemischt. Bitte sie, `{prefix}pioche` zu verwenden, um ihre Hand neu zu bilden.",
+        "reset_dm": "🃏 Dein Kartendeck wurde von {actor} zurückgesetzt.",
+    },
+    "es": {
+        "not_available": "❌ Este comando no está disponible en este servidor.",
+        "draw_invalid_count": "❌ El número de cartas debe ser mayor que 0.",
+        "draw_multiple_counts": "❌ Solo puedes especificar un número de cartas para robar.",
+        "draw_unexpected_argument": "❌ Argumento desconocido. Usa `{prefix}pioche [número] [--priv]` (ej. `{prefix}pioche 3 --priv`).",
+        "deck_empty_config": "❌ El mazo configurado está vacío. Revisa la configuración de las fichas.",
+        "draw_embed_title": "🪄 Robar cartas",
+        "auto_reset_footer": "Se ha construido y barajado un nuevo mazo.",
+        "field_tiles": "Cartas",
+        "default_card_name": "Carta",
+        "draw_deck_empty": "El mazo está vacío, no hay cartas para robar.",
+        "draw_none": "No se pudo robar ninguna carta.",
+        "draw_hand_full": "Tu mano ya está completa (5 cartas).",
+        "draw_deck_not_enough": "El mazo no tiene suficientes cartas para completar tu mano.",
+        "field_hand": "Mano actual",
+        "hand_empty": "(sin cartas en mano)",
+        "field_remaining": "Cartas restantes",
+        "field_discard": "Cartas descartadas",
+        "field_turn_action": "Acción del turno",
+        "turn_action_value": "Usa `{prefix}joue <índices>` para alinear hasta tres cartas (ej. `{prefix}joue 1 3`).",
+        "draw_deck_empty_footer": "El mazo está vacío. Si el enfrentamiento continúa, usa `{prefix}resetDeck` para reiniciar.",
+        "dm_failed": "⚠️ No se pudo enviar un mensaje privado. Permite los MD del servidor.",
+        "dm_sent": "📬 Resultado enviado por mensaje privado.",
+        "play_missing_indices": "❌ Indica las posiciones de las cartas a usar (ej. `{prefix}joue 1 2`).",
+        "play_invalid_index": "❌ Las posiciones deben ser números válidos.",
+        "play_too_many": "❌ Solo puedes alinear tres cartas por turno.",
+        "play_invalid_parameters": "❌ Parámetros no válidos para el comando `{prefix}joue`.",
+        "play_no_indices": "❌ Indica al menos una carta para usar.",
+        "play_empty_hand": "❌ Tu mano está vacía. Usa `{prefix}pioche` para robar cartas.",
+        "play_out_of_range": "❌ Una de las posiciones solicitadas no existe en tu mano actual.",
+        "play_duplicate_index": "❌ Cada posición solo puede usarse una vez por comando.",
+        "play_generic_error": "❌ No es posible usar estas cartas por el momento.",
+        "play_embed_title": "⚔️ Cartas alineadas",
+        "field_resolution": "Resolución",
+        "field_remaining_hand": "Mano restante",
+        "footer_draw_prompt": "Usa `{prefix}pioche` para rellenar tu mano hasta cinco cartas.",
+        "play_deck_empty_footer": "El mazo ahora está vacío. Considera `{prefix}resetDeck` si empieza una nueva ronda.",
+        "reset_not_allowed": "⛔ Esta acción está reservada para administradores autorizados.",
+        "reset_self": "🆕 Tu mazo ha sido reconstruido y barajado. Usa `{prefix}pioche` para obtener una mano de cinco cartas.",
+        "reset_other": "🆕 El mazo de {mention} ha sido reconstruido y barajado. Invítale a usar `{prefix}pioche` para rehacer su mano.",
+        "reset_dm": "🃏 Tu mazo de cartas fue restablecido por {actor}.",
+    },
+}
 
 
 class DeckManager:
@@ -214,6 +386,25 @@ class CardDraws(commands.Cog):
         self.bot = bot
 
     @staticmethod
+    def _get_translations(ctx: commands.Context) -> Dict[str, str]:
+        lang = "en"
+        if ctx.guild is not None:
+            lang = get_server_language(ctx.guild.id)
+        return CARD_TRANSLATIONS.get(lang, CARD_TRANSLATIONS["en"])
+
+    @staticmethod
+    def _get_prefix(ctx: commands.Context) -> str:
+        prefix = (getattr(ctx, "clean_prefix", None) or getattr(ctx, "prefix", None) or "").strip()
+        if prefix:
+            return prefix
+        if ctx.guild is not None:
+            guild_prefs = CACHE.get("server_prefs", {}).get(str(ctx.guild.id), {})
+            stored_prefix = guild_prefs.get("prefix")
+            if stored_prefix:
+                return stored_prefix
+        return config.get("prefix", "!")
+
+    @staticmethod
     def _is_server_allowed(ctx: commands.Context) -> bool:
         if ctx.guild is None:
             return False
@@ -280,8 +471,11 @@ class CardDraws(commands.Cog):
     async def draw_cards(self, ctx: commands.Context, *args: str):
         """Draw tiles to fill the player's hand up to five cards."""
 
+        tr = self._get_translations(ctx)
+        prefix = self._get_prefix(ctx)
+
         if not self._is_server_allowed(ctx):
-            await ctx.send("❌ Cette commande n'est pas disponible sur ce serveur.")
+            await ctx.send(tr["not_available"])
             return
 
         try:
@@ -289,11 +483,11 @@ class CardDraws(commands.Cog):
         except ValueError as exc:
             error_code = str(exc)
             if error_code == "invalid_count":
-                await ctx.send("❌ Le nombre de cartes doit être supérieur à 0.")
+                await ctx.send(tr["draw_invalid_count"])
             elif error_code == "multiple_counts":
-                await ctx.send("❌ Vous ne pouvez spécifier qu'un seul nombre de cartes à piocher.")
+                await ctx.send(tr["draw_multiple_counts"])
             else:
-                await ctx.send("❌ Argument inconnu. Utilisez `!pioche [nombre] [--priv]` (ex. `!pioche 3 --priv`).")
+                await ctx.send(tr["draw_unexpected_argument"].format(prefix=prefix))
             return
 
         async with DeckManager._lock:
@@ -302,62 +496,62 @@ class CardDraws(commands.Cog):
             )
 
         if not drawn_cards and not hand_snapshot and not state.get("deck") and not state.get("discard"):
-            await ctx.send("❌ Le paquet configuré est vide. Vérifiez la configuration des tuiles.")
+            await ctx.send(tr["deck_empty_config"])
             return
 
-        embed = discord.Embed(title="🪄 Pioche des Tuiles", color=discord.Color.blurple())
+        embed = discord.Embed(title=tr["draw_embed_title"], color=discord.Color.blurple())
         footer_messages: List[str] = []
 
         if auto_reset:
-            footer_messages.append("Un nouveau paquet a été constitué et mélangé.")
+            footer_messages.append(tr["auto_reset_footer"])
 
         if drawn_cards:
             draw_lines = []
             for card_id in drawn_cards:
                 card = DeckManager.get_card_info(card_id)
-                name = card.get("name", card.get("id", "Tuile"))
+                name = card.get("name", card.get("id", tr["default_card_name"]))
                 description = card.get("description")
                 if description:
                     draw_lines.append(f"- **{name}** — {description}")
                 else:
                     draw_lines.append(f"- **{name}**")
-            embed.add_field(name="Tuiles", value="\n".join(draw_lines), inline=False)
+            embed.add_field(name=tr["field_tiles"], value="\n".join(draw_lines), inline=False)
         else:
             # No cards were drawn
             if count is not None:
                 # Specific count was requested but nothing drawn
                 if deck_empty_after or len(state.get("deck", [])) == 0:
-                    footer_messages.append("Le paquet est vide, aucune carte à piocher.")
+                    footer_messages.append(tr["draw_deck_empty"])
                 else:
-                    footer_messages.append("Aucune carte n'a pu être piochée.")
+                    footer_messages.append(tr["draw_none"])
             elif len(hand_snapshot) >= 5:
-                footer_messages.append("Votre main est déjà complète (5 tuiles).")
+                footer_messages.append(tr["draw_hand_full"])
             elif deck_empty_after:
-                footer_messages.append("Le paquet ne contient plus assez de tuiles pour compléter votre main.")
+                footer_messages.append(tr["draw_deck_not_enough"])
 
         if hand_snapshot:
             hand_lines = []
             for index, card_id in enumerate(hand_snapshot, start=1):
                 card = DeckManager.get_card_info(card_id)
-                hand_lines.append(f"{index}. {card.get('name', card.get('id', 'Tuile'))}")
-            embed.add_field(name="Main actuelle", value="\n".join(hand_lines), inline=False)
+                hand_lines.append(f"{index}. {card.get('name', card.get('id', tr['default_card_name']))}")
+            embed.add_field(name=tr["field_hand"], value="\n".join(hand_lines), inline=False)
         else:
-            embed.add_field(name="Main actuelle", value="(aucune tuile en main)", inline=False)
+            embed.add_field(name=tr["field_hand"], value=tr["hand_empty"], inline=False)
 
         deck_remaining = len(state.get("deck", []))
         discard_count = len(state.get("discard", []))
-        embed.add_field(name="Tuiles restantes", value=str(deck_remaining), inline=True)
-        embed.add_field(name="Tuiles défaussées", value=str(discard_count), inline=True)
+        embed.add_field(name=tr["field_remaining"], value=str(deck_remaining), inline=True)
+        embed.add_field(name=tr["field_discard"], value=str(discard_count), inline=True)
 
         if hand_snapshot:
             embed.add_field(
-                name="Action du tour",
-                value="Utilisez `!joue <indices>` pour aligner jusqu'à trois tuiles (ex. `!joue 1 3`).",
+                name=tr["field_turn_action"],
+                value=tr["turn_action_value"].format(prefix=prefix),
                 inline=False,
             )
 
         if deck_empty_after and deck_remaining == 0:
-            footer_messages.append("Le paquet est vide. Si l'affrontement continue, utilisez `!resetDeck` pour recommencer.")
+            footer_messages.append(tr["draw_deck_empty_footer"].format(prefix=prefix))
 
         if footer_messages:
             embed.set_footer(text=" ".join(footer_messages))
@@ -366,10 +560,10 @@ class CardDraws(commands.Cog):
             try:
                 await ctx.author.send(embed=embed)
             except discord.Forbidden:
-                await ctx.send("⚠️ Impossible d'envoyer un message privé. Merci d'autoriser les DM du serveur.")
+                await ctx.send(tr["dm_failed"])
                 return
 
-            await ctx.send("📬 Résultat envoyé en message privé.")
+            await ctx.send(tr["dm_sent"])
         else:
             await ctx.send(embed=embed)
 
@@ -378,8 +572,11 @@ class CardDraws(commands.Cog):
     async def play_tiles(self, ctx: commands.Context, *args: str):
         """Play up to three tiles from the current hand using their displayed indices."""
 
+        tr = self._get_translations(ctx)
+        prefix = self._get_prefix(ctx)
+
         if not self._is_server_allowed(ctx):
-            await ctx.send("❌ Cette commande n'est pas disponible sur ce serveur.")
+            await ctx.send(tr["not_available"])
             return
 
         try:
@@ -387,13 +584,13 @@ class CardDraws(commands.Cog):
         except ValueError as exc:
             error_code = str(exc)
             if error_code == "no_indices":
-                await ctx.send("❌ Indiquez les positions des tuiles à utiliser (ex. `!joue 1 2`).")
+                await ctx.send(tr["play_missing_indices"].format(prefix=prefix))
             elif error_code == "invalid_index":
-                await ctx.send("❌ Les positions doivent être des nombres valides.")
+                await ctx.send(tr["play_invalid_index"])
             elif error_code == "too_many":
-                await ctx.send("❌ Vous ne pouvez aligner que trois tuiles par tour.")
+                await ctx.send(tr["play_too_many"])
             else:
-                await ctx.send("❌ Paramètres invalides pour la commande `!joue`.")
+                await ctx.send(tr["play_invalid_parameters"].format(prefix=prefix))
             return
 
         async with DeckManager._lock:
@@ -404,49 +601,49 @@ class CardDraws(commands.Cog):
             except ValueError as exc:
                 error_code = str(exc)
                 if error_code == "no_indices":
-                    await ctx.send("❌ Indiquez au moins une tuile à utiliser.")
+                    await ctx.send(tr["play_no_indices"])
                 elif error_code == "too_many":
-                    await ctx.send("❌ Vous ne pouvez aligner que trois tuiles par tour.")
+                    await ctx.send(tr["play_too_many"])
                 elif error_code == "empty_hand":
-                    await ctx.send("❌ Votre main est vide. Utilisez `!pioche` pour récupérer des tuiles.")
+                    await ctx.send(tr["play_empty_hand"].format(prefix=prefix))
                 elif error_code == "out_of_range":
-                    await ctx.send("❌ L'une des positions demandées n'existe pas dans votre main actuelle.")
+                    await ctx.send(tr["play_out_of_range"])
                 elif error_code == "duplicate_index":
-                    await ctx.send("❌ Chaque position ne peut être utilisée qu'une seule fois par commande.")
+                    await ctx.send(tr["play_duplicate_index"])
                 else:
-                    await ctx.send("❌ Impossible d'utiliser ces tuiles pour le moment.")
+                    await ctx.send(tr["play_generic_error"])
                 return
 
         card_details = [DeckManager.get_card_info(card_id) for card_id in played_cards]
         lines = []
         for card in card_details:
-            name = card.get("name", card.get("id", "Tuile"))
+            name = card.get("name", card.get("id", tr["default_card_name"]))
             description = card.get("description")
             if description:
                 lines.append(f"- **{name}** — {description}")
             else:
                 lines.append(f"- **{name}**")
 
-        embed = discord.Embed(title="⚔️ Tuiles alignées", color=discord.Color.orange())
-        embed.add_field(name="Résolution", value="\n".join(lines), inline=False)
+        embed = discord.Embed(title=tr["play_embed_title"], color=discord.Color.orange())
+        embed.add_field(name=tr["field_resolution"], value="\n".join(lines), inline=False)
 
         if hand_snapshot:
             hand_lines = []
             for index, card_id in enumerate(hand_snapshot, start=1):
                 card = DeckManager.get_card_info(card_id)
-                hand_lines.append(f"{index}. {card.get('name', card.get('id', 'Tuile'))}")
-            embed.add_field(name="Main restante", value="\n".join(hand_lines), inline=False)
+                hand_lines.append(f"{index}. {card.get('name', card.get('id', tr['default_card_name']))}")
+            embed.add_field(name=tr["field_remaining_hand"], value="\n".join(hand_lines), inline=False)
         else:
-            embed.add_field(name="Main restante", value="(aucune tuile en main)", inline=False)
+            embed.add_field(name=tr["field_remaining_hand"], value=tr["hand_empty"], inline=False)
 
         deck_remaining = len(state.get("deck", []))
         discard_count = len(state.get("discard", []))
-        embed.add_field(name="Tuiles restantes", value=str(deck_remaining), inline=True)
-        embed.add_field(name="Tuiles défaussées", value=str(discard_count), inline=True)
+        embed.add_field(name=tr["field_remaining"], value=str(deck_remaining), inline=True)
+        embed.add_field(name=tr["field_discard"], value=str(discard_count), inline=True)
 
-        footer_messages: List[str] = ["Utilisez `!pioche` pour compléter votre main jusqu'à cinq tuiles."]
+        footer_messages: List[str] = [tr["footer_draw_prompt"].format(prefix=prefix)]
         if deck_empty_after and deck_remaining == 0:
-            footer_messages.append("Le paquet est désormais vide. Pensez à `!resetDeck` si une nouvelle manche débute.")
+            footer_messages.append(tr["play_deck_empty_footer"].format(prefix=prefix))
 
         embed.set_footer(text=" ".join(footer_messages))
 
@@ -454,10 +651,10 @@ class CardDraws(commands.Cog):
             try:
                 await ctx.author.send(embed=embed)
             except discord.Forbidden:
-                await ctx.send("⚠️ Impossible d'envoyer un message privé. Merci d'autoriser les DM du serveur.")
+                await ctx.send(tr["dm_failed"])
                 return
 
-            await ctx.send("📬 Résultat envoyé en message privé.")
+            await ctx.send(tr["dm_sent"])
         else:
             await ctx.send(embed=embed)
 
@@ -466,36 +663,33 @@ class CardDraws(commands.Cog):
     async def reset_deck(self, ctx: commands.Context, member: Optional[discord.Member] = None):
         """Reset a deck (self or another user if admin)."""
 
+        tr = self._get_translations(ctx)
+        prefix = self._get_prefix(ctx)
+
         if not self._is_server_allowed(ctx):
-            await ctx.send("❌ Cette commande n'est pas disponible sur ce serveur.")
+            await ctx.send(tr["not_available"])
             return
 
         target = member or ctx.author
         acting_user_is_admin = DeckManager.is_admin(ctx.author.id)
 
         if member and not acting_user_is_admin:
-            await ctx.send("⛔ Cette action est réservée aux administrateurs autorisés.")
+            await ctx.send(tr["reset_not_allowed"])
             return
 
         async with DeckManager._lock:
             _, has_cards = DeckManager.reset_deck(ctx.guild.id, target.id)
 
         if not has_cards:
-            await ctx.send("❌ Le paquet configuré est vide. Vérifiez la configuration des tuiles.")
+            await ctx.send(tr["deck_empty_config"])
             return
 
         if target == ctx.author:
-            await ctx.send(
-                "🆕 Votre paquet a été reconstitué et mélangé. Utilisez `!pioche` pour récupérer une main de cinq tuiles."
-            )
+            await ctx.send(tr["reset_self"].format(prefix=prefix))
         else:
-            await ctx.send(
-                f"🆕 Le paquet de {target.mention} a été reconstitué et mélangé. Invitez-le à utiliser `!pioche` pour reformer sa main."
-            )
+            await ctx.send(tr["reset_other"].format(mention=target.mention, prefix=prefix))
             try:
-                await target.send(
-                    f"🃏 Votre paquet de tuiles a été réinitialisé par {ctx.author.display_name}."
-                )
+                await target.send(tr["reset_dm"].format(actor=ctx.author.display_name))
             except discord.Forbidden:
                 pass
 def setup(bot: commands.Bot):
