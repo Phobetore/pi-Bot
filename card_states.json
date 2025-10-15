@@ -1,1 +1,115 @@
-{}
+{
+    "1044908147812352072": {
+        "386593552789929987": {
+            "deck": [
+                "fireball",
+                "fireball",
+                "ice_spike",
+                "earth_wall",
+                "wind_gust",
+                "earth_wall",
+                "fireball",
+                "wind_gust",
+                "wind_gust",
+                "ice_spike",
+                "wind_gust",
+                "earth_wall",
+                "ice_spike",
+                "ice_spike",
+                "wind_gust"
+            ],
+            "hand": [
+                "fireball",
+                "earth_wall",
+                "fireball",
+                "earth_wall",
+                "ice_spike"
+            ],
+            "discard": []
+        }
+    },
+    "739956474624868423": {
+        "386593552789929987": {
+            "deck": [
+                "wind_gust",
+                "earth_wall",
+                "wind_gust",
+                "fireball",
+                "ice_spike",
+                "fireball",
+                "ice_spike",
+                "wind_gust",
+                "wind_gust",
+                "fireball",
+                "wind_gust",
+                "earth_wall",
+                "ice_spike",
+                "fireball",
+                "fireball"
+            ],
+            "hand": [
+                "earth_wall",
+                "ice_spike",
+                "ice_spike",
+                "earth_wall",
+                "earth_wall"
+            ],
+            "discard": []
+        }
+    },
+    "1273240512509382716": {
+        "386593552789929987": {
+            "deck": [
+                "wind_gust",
+                "earth_wall",
+                "ice_spike",
+                "ice_spike",
+                "ice_spike",
+                "fireball",
+                "fireball",
+                "fireball",
+                "ice_spike",
+                "wind_gust",
+                "earth_wall",
+                "earth_wall"
+            ],
+            "hand": [
+                "fireball",
+                "earth_wall",
+                "wind_gust",
+                "fireball",
+                "wind_gust",
+                "wind_gust",
+                "earth_wall",
+                "ice_spike"
+            ],
+            "discard": []
+        },
+        "303241141837496320": {
+            "deck": [
+                "wind_gust",
+                "earth_wall",
+                "fireball",
+                "ice_spike",
+                "ice_spike",
+                "fireball",
+                "wind_gust",
+                "earth_wall",
+                "fireball",
+                "earth_wall",
+                "earth_wall",
+                "ice_spike",
+                "ice_spike",
+                "wind_gust",
+                "fireball",
+                "ice_spike",
+                "fireball",
+                "earth_wall",
+                "wind_gust",
+                "wind_gust"
+            ],
+            "hand": [],
+            "discard": []
+        }
+    }
+}
