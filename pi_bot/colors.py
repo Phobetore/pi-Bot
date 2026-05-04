@@ -25,7 +25,7 @@ _ALIASES: Final[dict[str, str]] = {
     "yellow": "yellow", "purple": "purple", "orange": "orange",
     # French (legacy support)
     "bleu": "blue", "rouge": "red", "vert": "green",
-    "jaune": "yellow", "violet": "purple", "orange ": "orange",
+    "jaune": "yellow", "violet": "purple",
     # German
     "blau": "blue", "rot": "red", "grün": "green", "gruen": "green",
     "gelb": "yellow", "lila": "purple",

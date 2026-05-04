@@ -96,6 +96,13 @@ def load_config(env_file: Path | None = None) -> Config:
 
     data_dir.mkdir(parents=True, exist_ok=True)
     log_dir.mkdir(parents=True, exist_ok=True)
+    # Tighten permissions on POSIX (no-op on Windows). Stats and prefs are
+    # stored here; nobody else needs to read them.
+    for directory in (data_dir, log_dir):
+        try:
+            os.chmod(directory, 0o700)
+        except OSError:
+            pass
 
     return Config(
         token=token,

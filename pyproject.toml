@@ -34,8 +34,9 @@ dev = [
 [project.scripts]
 pi-bot = "pi_bot.__main__:main"
 
-[tool.setuptools]
-packages = ["pi_bot", "pi_bot.cogs"]
+[tool.setuptools.packages.find]
+include = ["pi_bot*"]
+exclude = ["tests*"]
 
 [tool.pytest.ini_options]
 minversion = "8.0"

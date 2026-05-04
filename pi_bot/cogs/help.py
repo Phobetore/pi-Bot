@@ -8,22 +8,18 @@ from discord.ext import commands
 
 from .. import colors
 from ..translations import t
+from ._base import BaseCog
 
 if TYPE_CHECKING:
     from ..bot import PiBot
 
 
-class HelpCog(commands.Cog):
-    def __init__(self, bot: "PiBot") -> None:
-        self.bot = bot
-
+class HelpCog(BaseCog):
     @commands.command(name="help", aliases=["h"])
     @commands.cooldown(1, 3, commands.BucketType.user)
     async def help_command(self, ctx: commands.Context) -> None:
-        lang = self.bot.state.get_server_language(
-            ctx.guild.id if ctx.guild else None
-        )
-        prefix = (ctx.clean_prefix or self.bot.config.default_prefix).strip()
+        lang = self._lang(ctx)
+        prefix = self._prefix(ctx)
 
         embed = discord.Embed(
             title=t(lang, "help_title"),
@@ -74,5 +70,5 @@ class HelpCog(commands.Cog):
         await ctx.send(embed=embed)
 
 
-def setup(bot: commands.Bot) -> None:
-    bot.add_cog(HelpCog(bot))  # type: ignore[arg-type]
+def setup(bot: "PiBot") -> None:
+    bot.add_cog(HelpCog(bot))

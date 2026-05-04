@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import logging
+import re
 import secrets
 from typing import TYPE_CHECKING, Optional
 
@@ -11,6 +12,7 @@ from discord.ext import commands
 from .. import colors
 from ..dice_parser import DiceParseError, ParsedExpression, parse
 from ..translations import t
+from ._base import BaseCog
 
 if TYPE_CHECKING:
     from ..bot import PiBot
@@ -23,27 +25,21 @@ audit_logger = logging.getLogger("pi_bot.audit")
 _RNG = secrets.SystemRandom()
 
 _HIGH_ROLL_THRESHOLD = 999
+_WHITESPACE_SPLIT = re.compile(r"\s+")
+# A leading digit (with optional sign) means the user almost certainly meant
+# a dice expression, so the "treat the input as a target name" fallback is
+# disabled for those cases.
+_LOOKS_LIKE_DICE_ATTEMPT = re.compile(r"^[+-]?\d")
 
 
-class DiceCog(commands.Cog):
-    def __init__(self, bot: "PiBot") -> None:
-        self.bot = bot
-
-    # ------------------------------------------------------------------
-    # Helpers
-    # ------------------------------------------------------------------
-    def _lang(self, ctx: commands.Context) -> str:
-        return self.bot.state.get_server_language(
-            ctx.guild.id if ctx.guild else None
-        )
-
+class DiceCog(BaseCog):
     def _author_color(self, user_id: int) -> discord.Color:
         return discord.Color(self.bot.state.get_user_color_hex(user_id))
 
     def _roll_dice(
         self, expr: ParsedExpression
     ) -> tuple[int, list[str], list[int]]:
-        """Roll the dice from ``expr`` and return (total, summary_lines, signed_results)."""
+        """Roll the dice from ``expr``, returning total + per-term summary + signed results."""
         dice_total = 0
         summary_lines: list[str] = []
         signed_results: list[int] = []
@@ -56,8 +52,7 @@ class DiceCog(commands.Cog):
                 f"{sign_prefix}{part.rolls}d{part.faces}: "
                 + ", ".join(str(r) for r in results)
             )
-            for r in results:
-                signed_results.append(part.sign * r)
+            signed_results.extend(part.sign * r for r in results)
 
         return dice_total + expr.modifier_total, summary_lines, signed_results
 
@@ -65,11 +60,8 @@ class DiceCog(commands.Cog):
     def _format_calculation(
         signed_results: list[int], modifiers: tuple[int, ...]
     ) -> str:
-        parts: list[str] = []
-        for value in signed_results:
-            parts.append(str(value))
-        for mod in modifiers:
-            parts.append(f"{mod:+d}")
+        parts: list[str] = [str(value) for value in signed_results]
+        parts.extend(f"{mod:+d}" for mod in modifiers)
         if not parts:
             return ""
         first, *rest = parts
@@ -109,8 +101,7 @@ class DiceCog(commands.Cog):
             )
 
         # Show calculation only when there is meaningful structure to show.
-        show_calc = (len(signed_results) + len(modifiers)) > 1
-        if show_calc:
+        if (len(signed_results) + len(modifiers)) > 1:
             value = self._format_calculation(signed_results, modifiers)
             if value:
                 embed.add_field(
@@ -130,9 +121,6 @@ class DiceCog(commands.Cog):
         )
         return embed
 
-    # ------------------------------------------------------------------
-    # Commands
-    # ------------------------------------------------------------------
     @commands.command(name="roll", aliases=["r"])
     @commands.cooldown(1, 3, commands.BucketType.user)
     @commands.max_concurrency(1, per=commands.BucketType.user, wait=False)
@@ -141,9 +129,9 @@ class DiceCog(commands.Cog):
     ) -> None:
         """Roll dice. Example: ``!roll 2d6+3 Goblin``."""
         lang = self._lang(ctx)
+        prefix = self._prefix(ctx)
         guild_id = ctx.guild.id if ctx.guild else None
         default_roll = self.bot.state.get_server_default_roll(guild_id)
-        prefix = (ctx.clean_prefix or self.bot.config.default_prefix).strip()
 
         raw = (args or "").strip()
         if not raw:
@@ -156,17 +144,22 @@ class DiceCog(commands.Cog):
             await ctx.send(t(lang, "roll_input_too_long"))
             return
 
-        # Split: first whitespace-delimited token is the expression, rest is
-        # an optional target name.
-        head, _, tail = raw.partition(" ")
-        target_name = tail.strip() or None
+        # Split on any run of whitespace — covers tabs, multiple spaces, etc.
+        parts = _WHITESPACE_SPLIT.split(raw, maxsplit=1)
+        head = parts[0]
+        target_name: Optional[str] = parts[1].strip() if len(parts) > 1 else None
 
         try:
             expr = parse(head)
         except DiceParseError as exc:
-            # Maybe the user wanted to use the default roll with a target name:
-            # `!r Goblin` → use default + name "Goblin".
-            if default_roll is not None and target_name is None:
+            # Fallback: ``!r SomeName`` should use the server default roll and
+            # treat the whole input as a target name. Only triggers when the
+            # input clearly does not look like a dice attempt.
+            if (
+                default_roll is not None
+                and target_name is None
+                and not _LOOKS_LIKE_DICE_ATTEMPT.match(head)
+            ):
                 try:
                     expr = parse(default_roll)
                     target_name = head
@@ -203,8 +196,7 @@ class DiceCog(commands.Cog):
         )
         await ctx.send(embed=embed)
 
-        # Best-effort cleanup of the invocation message in guilds where the
-        # bot has Manage Messages.
+        # Best-effort cleanup of the invocation message.
         if ctx.guild is not None:
             try:
                 await ctx.message.delete()
@@ -222,6 +214,7 @@ class DiceCog(commands.Cog):
             options = ", ".join(sorted(colors.CANONICAL_COLORS))
             await ctx.send(t(lang, "color_unknown", options=options))
             return
+        await self.bot.state.save()
         await ctx.send(t(lang, "color_set", color=canonical))
 
     @commands.command(name="getcolor")
@@ -233,5 +226,5 @@ class DiceCog(commands.Cog):
         await ctx.send(t(lang, "color_current", color=name))
 
 
-def setup(bot: commands.Bot) -> None:
-    bot.add_cog(DiceCog(bot))  # type: ignore[arg-type]
+def setup(bot: "PiBot") -> None:
+    bot.add_cog(DiceCog(bot))

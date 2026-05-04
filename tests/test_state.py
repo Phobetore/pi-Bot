@@ -127,6 +127,88 @@ class TestPersistence:
         assert state.get_server_language(123) == "en"
 
 
+class TestSchemaSanitization:
+    """Loaded JSON may have valid syntax but unexpected shape; we must not crash."""
+
+    async def test_user_stats_with_string_value_is_dropped(
+        self, tmp_path: Path
+    ) -> None:
+        (tmp_path / "user_stats.json").write_text(
+            json.dumps({"123": "this should be a dict"}), encoding="utf-8"
+        )
+        state = State(tmp_path)
+        state.load()
+        assert state.get_user_dice_count(123) == 0
+        # Subsequent mutations must succeed instead of crashing.
+        await state.increment_dice_rolls(123)
+        assert state.get_user_dice_count(123) == 1
+
+    async def test_user_prefs_with_list_value_is_dropped(
+        self, tmp_path: Path
+    ) -> None:
+        (tmp_path / "user_preferences.json").write_text(
+            json.dumps({"users": {"42": [1, 2, 3]}}), encoding="utf-8"
+        )
+        state = State(tmp_path)
+        state.load()
+        assert state.get_user_color_name(42) == "blue"  # default
+        await state.set_user_color(42, "red")  # must not crash
+        assert state.get_user_color_name(42) == "red"
+
+    async def test_server_prefs_with_wrong_type_field_is_filtered(
+        self, tmp_path: Path
+    ) -> None:
+        (tmp_path / "server_preferences.json").write_text(
+            json.dumps({"42": {"prefix": 123, "language": "fr"}}),
+            encoding="utf-8",
+        )
+        state = State(tmp_path)
+        state.load()
+        # Wrong-type prefix is dropped; language survives.
+        assert state.get_server_prefix(42, "!") == "!"
+        assert state.get_server_language(42) == "fr"
+
+    async def test_top_level_users_not_dict(self, tmp_path: Path) -> None:
+        (tmp_path / "user_preferences.json").write_text(
+            json.dumps({"users": "broken"}), encoding="utf-8"
+        )
+        state = State(tmp_path)
+        state.load()
+        assert state.get_user_color_name(1) == "blue"
+
+    async def test_negative_count_reset_to_zero(self, tmp_path: Path) -> None:
+        (tmp_path / "user_stats.json").write_text(
+            json.dumps({"7": {"dice_rolls_count": -5}}), encoding="utf-8"
+        )
+        state = State(tmp_path)
+        state.load()
+        assert state.get_user_dice_count(7) == 0
+
+    async def test_bool_count_reset_to_zero(self, tmp_path: Path) -> None:
+        # bool is a subclass of int; we don't want True silently becoming 1.
+        (tmp_path / "user_stats.json").write_text(
+            json.dumps({"7": {"dice_rolls_count": True}}), encoding="utf-8"
+        )
+        state = State(tmp_path)
+        state.load()
+        assert state.get_user_dice_count(7) == 0
+
+    async def test_sanitization_marks_dirty_so_repair_persists(
+        self, tmp_path: Path
+    ) -> None:
+        (tmp_path / "user_stats.json").write_text(
+            json.dumps({"123": "garbage"}), encoding="utf-8"
+        )
+        state = State(tmp_path)
+        state.load()
+        assert state.is_dirty
+        await state.save()
+        with (tmp_path / "user_stats.json").open(encoding="utf-8") as f:
+            on_disk = json.load(f)
+        # Either dropped entirely, or normalized to the canonical empty entry.
+        assert "123" not in on_disk or on_disk["123"] == {"dice_rolls_count": 0}
+
+
 class TestStats:
     async def test_increment(self, state: State) -> None:
         await state.increment_dice_rolls(7)

@@ -51,14 +51,9 @@ class State:
     # Lifecycle
     # ------------------------------------------------------------------
     def load(self) -> None:
-        """Synchronously load state from disk and migrate legacy formats."""
+        """Synchronously load state from disk, sanitize, and migrate."""
         users = read_json(self._users_path, {"users": {}})
-        if not isinstance(users, dict):
-            users = {"users": {}}
-        users.setdefault("users", {})
-        if not isinstance(users["users"], dict):
-            users["users"] = {}
-        self._user_preferences = users
+        self._user_preferences = users if isinstance(users, dict) else {"users": {}}
 
         stats = read_json(self._stats_path, {})
         self._user_stats = stats if isinstance(stats, dict) else {}
@@ -66,14 +61,70 @@ class State:
         servers = read_json(self._servers_path, {})
         self._server_prefs = servers if isinstance(servers, dict) else {}
 
+        self._sanitize()
         self._migrate()
+
+    def _sanitize(self) -> None:
+        """Drop or repair on-disk values that do not match the expected schema.
+
+        Anything that survives passes through to the rest of the module without
+        further isinstance checks. Marks dirty so repairs are persisted on the
+        next save.
+        """
+        # ── user_preferences: {"users": {<id_str>: {"color": <str>}}}
+        raw_users = self._user_preferences.get("users")
+        if not isinstance(raw_users, dict):
+            self._user_preferences = {"users": {}}
+            self._dirty = True
+        else:
+            cleaned_users: dict[str, dict[str, Any]] = {}
+            for uid, prefs in raw_users.items():
+                if isinstance(uid, str) and isinstance(prefs, dict):
+                    cleaned_users[uid] = prefs
+                else:
+                    self._dirty = True
+            if cleaned_users != raw_users:
+                self._dirty = True
+            self._user_preferences["users"] = cleaned_users
+
+        # ── user_stats: {<id_str>: {"dice_rolls_count": <int>}}
+        cleaned_stats: dict[str, dict[str, int]] = {}
+        for uid, entry in self._user_stats.items():
+            if not (isinstance(uid, str) and isinstance(entry, dict)):
+                self._dirty = True
+                continue
+            count = entry.get("dice_rolls_count", 0)
+            # bool is a subclass of int — exclude it explicitly.
+            if not isinstance(count, int) or isinstance(count, bool) or count < 0:
+                count = 0
+                self._dirty = True
+            cleaned_stats[uid] = {"dice_rolls_count": count}
+        if cleaned_stats != self._user_stats:
+            self._dirty = True
+        self._user_stats = cleaned_stats
+
+        # ── server_prefs: {<id_str>: {prefix?, language?, default_roll?}}
+        cleaned_servers: dict[str, dict[str, Any]] = {}
+        for gid, entry in self._server_prefs.items():
+            if not (isinstance(gid, str) and isinstance(entry, dict)):
+                self._dirty = True
+                continue
+            clean: dict[str, Any] = {}
+            for key in ("prefix", "language", "default_roll"):
+                value = entry.get(key)
+                if isinstance(value, str):
+                    clean[key] = value
+                elif key in entry:
+                    self._dirty = True  # field present but wrong type
+            cleaned_servers[gid] = clean
+        if cleaned_servers != self._server_prefs:
+            self._dirty = True
+        self._server_prefs = cleaned_servers
 
     def _migrate(self) -> None:
         """Forward-only data migrations. Marks dirty if anything changes."""
         users = self._user_preferences.get("users", {})
         for prefs in users.values():
-            if not isinstance(prefs, dict):
-                continue
             color = prefs.get("color")
             if isinstance(color, str):
                 resolved = colors.resolve(color)
@@ -84,7 +135,7 @@ class State:
                     prefs["color"] = colors.DEFAULT_COLOR
                     self._dirty = True
 
-        # Drop legacy `colors` mapping that used to be inside the file.
+        # Drop legacy `colors` mapping that used to live inside the file.
         if "colors" in self._user_preferences:
             self._user_preferences.pop("colors", None)
             self._dirty = True

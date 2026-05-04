@@ -5,6 +5,8 @@ import asyncio
 import logging
 import sys
 
+import discord
+
 from .bot import PiBot
 from .config import ConfigError, load_config
 from .logging_setup import configure_logging
@@ -33,6 +35,22 @@ def main() -> int:
     except KeyboardInterrupt:
         logger.info("Interrupted by user")
         return 130
+    except discord.LoginFailure as exc:
+        print(f"Discord login failed: {exc}", file=sys.stderr)
+        print(
+            "Verify PI_BOT_TOKEN is correct and the bot has not been "
+            "regenerated or revoked.",
+            file=sys.stderr,
+        )
+        return 3
+    except discord.PrivilegedIntentsRequired as exc:
+        print(f"Privileged intents missing: {exc}", file=sys.stderr)
+        print(
+            "Enable 'MESSAGE CONTENT INTENT' for the bot in the Discord "
+            "Developer Portal: Bot → Privileged Gateway Intents.",
+            file=sys.stderr,
+        )
+        return 4
     return 0
 
 

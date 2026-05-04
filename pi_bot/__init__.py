@@ -1,3 +1,7 @@
 """pi-Bot — a Discord dice-rolling bot."""
+from importlib.metadata import PackageNotFoundError, version as _pkg_version
 
-__version__ = "1.0.0"
+try:
+    __version__ = _pkg_version("pi-bot")
+except PackageNotFoundError:  # not installed (e.g. running from a fresh checkout)
+    __version__ = "0.0.0+local"

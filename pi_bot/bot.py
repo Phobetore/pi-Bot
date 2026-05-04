@@ -3,10 +3,12 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import pkgutil
 
 import discord
 from discord.ext import commands
 
+from . import cogs as _cogs_pkg
 from .config import Config
 from .state import State
 from .translations import t
@@ -14,11 +16,17 @@ from .translations import t
 logger = logging.getLogger(__name__)
 audit_logger = logging.getLogger("pi_bot.audit")
 
-_EXTENSIONS: tuple[str, ...] = (
-    "pi_bot.cogs.dice",
-    "pi_bot.cogs.settings",
-    "pi_bot.cogs.help",
-)
+
+def _discover_extensions() -> tuple[str, ...]:
+    """Return all public cog module dotted-paths under ``pi_bot.cogs``.
+
+    Modules whose name starts with ``_`` (e.g. ``_base``) are excluded.
+    """
+    return tuple(
+        f"{_cogs_pkg.__name__}.{module.name}"
+        for module in pkgutil.iter_modules(_cogs_pkg.__path__)
+        if not module.name.startswith("_")
+    )
 
 
 class PiBot(commands.Bot):
@@ -34,6 +42,7 @@ class PiBot(commands.Bot):
             command_prefix=self._resolve_prefix,
             intents=intents,
             help_command=None,
+            allowed_mentions=discord.AllowedMentions.none(),
         )
         self.config = config
         self.state = state
@@ -55,7 +64,7 @@ class PiBot(commands.Bot):
     # Lifecycle
     # ------------------------------------------------------------------
     async def setup_hook(self) -> None:
-        for extension in _EXTENSIONS:
+        for extension in _discover_extensions():
             try:
                 self.load_extension(extension)
             except Exception:
@@ -99,7 +108,10 @@ class PiBot(commands.Bot):
             await ctx.send(t(lang, "command_cooldown", seconds=1.0))
             return
         if isinstance(error, commands.UserInputError):
-            await ctx.send(f"❌ {error}")
+            # The exception text may echo user input; truncate and rely on the
+            # bot's global allowed_mentions=None to neutralize stray pings.
+            text = discord.utils.escape_mentions(str(error))[:200]
+            await ctx.send(f"❌ {text}")
             return
 
         logger.exception(

@@ -9,6 +9,7 @@ from discord.ext import commands
 from ..dice_parser import DiceParseError, parse
 from ..state import is_valid_prefix
 from ..translations import SUPPORTED_LANGUAGES, t
+from ._base import BaseCog
 
 if TYPE_CHECKING:
     from ..bot import PiBot
@@ -16,15 +17,7 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-class SettingsCog(commands.Cog):
-    def __init__(self, bot: "PiBot") -> None:
-        self.bot = bot
-
-    def _lang(self, ctx: commands.Context) -> str:
-        return self.bot.state.get_server_language(
-            ctx.guild.id if ctx.guild else None
-        )
-
+class SettingsCog(BaseCog):
     @commands.command(name="setlang")
     @commands.guild_only()
     @commands.has_permissions(manage_guild=True)
@@ -81,5 +74,5 @@ class SettingsCog(commands.Cog):
         await ctx.send(t(lang, "defaultroll_set", expression=cleaned))
 
 
-def setup(bot: commands.Bot) -> None:
-    bot.add_cog(SettingsCog(bot))  # type: ignore[arg-type]
+def setup(bot: "PiBot") -> None:
+    bot.add_cog(SettingsCog(bot))

@@ -20,6 +20,10 @@ Multi-server, multi-language, with persistent per-user and per-server preference
 - Python ≥ 3.11
 - A Discord bot application + token
   ([create one](https://discord.com/developers/applications))
+- The **MESSAGE CONTENT INTENT** privileged gateway intent enabled on your
+  application (Developer Portal → your app → *Bot* → *Privileged Gateway
+  Intents*). Without it, py-cord raises `PrivilegedIntentsRequired` on
+  startup.
 
 ## Installation
 
