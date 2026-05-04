@@ -90,12 +90,28 @@ The bot creates `data/` and `logs/` on first start.
 
 ```
 NdM             N rolls of an M-sided die           e.g.  3d6
-NdM+K           with constant modifier               e.g.  1d20+5
-NdM-PdQ         multiple terms (any sign)            e.g.  2d6-1d4+3
-N               constant only                        e.g.  7
+NdM+K           with constant modifier              e.g.  1d20+5
+NdM-PdQ         multiple terms (any sign)           e.g.  2d6-1d4+3
+N               constant only                       e.g.  7
 ```
 
 Limits: ≤ 50 rolls per term, ≤ 99999 faces, ≤ 100-character expression.
+
+### Free-form input
+
+The `!roll` command tolerates arbitrary spacing inside the expression and
+detects an optional target name automatically:
+
+```
+!r 1d20 +20                    →  1d20 + 20
+!r 2d6 + 5                     →  2d6 + 5
+!r 1d20 +2d6 +4 Goblin         →  1d20 + 2d6 + 4, target = Goblin
+!r 1d20+5 Big Boss             →  1d20 + 5, target = Big Boss
+!r Goblin                      →  use server default roll, target = Goblin
+```
+
+Rule: the longest leading sequence of tokens that forms a valid expression
+becomes the calculation; the rest becomes the target name.
 
 ## Development
 

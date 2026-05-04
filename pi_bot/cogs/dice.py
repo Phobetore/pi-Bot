@@ -10,7 +10,7 @@ import discord
 from discord.ext import commands
 
 from .. import colors
-from ..dice_parser import DiceParseError, ParsedExpression, parse
+from ..dice_parser import DiceParseError, ParsedExpression, parse, parse_roll_input
 from ..translations import t
 from ._base import BaseCog
 
@@ -25,10 +25,9 @@ audit_logger = logging.getLogger("pi_bot.audit")
 _RNG = secrets.SystemRandom()
 
 _HIGH_ROLL_THRESHOLD = 999
-_WHITESPACE_SPLIT = re.compile(r"\s+")
 # A leading digit (with optional sign) means the user almost certainly meant
-# a dice expression, so the "treat the input as a target name" fallback is
-# disabled for those cases.
+# a dice expression. When parsing fails on such input, we surface the parse
+# error rather than silently treating the input as a target name.
 _LOOKS_LIKE_DICE_ATTEMPT = re.compile(r"^[+-]?\d")
 
 
@@ -144,30 +143,40 @@ class DiceCog(BaseCog):
             await ctx.send(t(lang, "roll_input_too_long"))
             return
 
-        # Split on any run of whitespace — covers tabs, multiple spaces, etc.
-        parts = _WHITESPACE_SPLIT.split(raw, maxsplit=1)
-        head = parts[0]
-        target_name: Optional[str] = parts[1].strip() if len(parts) > 1 else None
+        # Greedy split: longest leading run of dice/modifier tokens forms the
+        # expression; the rest is the target name. Whitespace around operators
+        # is tolerated.
+        expr, expression_str, target_name = parse_roll_input(raw)
 
-        try:
-            expr = parse(head)
-        except DiceParseError as exc:
-            # Fallback: ``!r SomeName`` should use the server default roll and
-            # treat the whole input as a target name. Only triggers when the
-            # input clearly does not look like a dice attempt.
+        if expr is None:
+            # No valid leading expression. Treat the whole input as a target
+            # name and use the server default roll — but only if the input
+            # doesn't look like a botched dice attempt. Otherwise the user
+            # almost certainly wanted to roll and deserves an error.
+            looks_like_dice = bool(
+                target_name and _LOOKS_LIKE_DICE_ATTEMPT.match(target_name)
+            )
             if (
                 default_roll is not None
-                and target_name is None
-                and not _LOOKS_LIKE_DICE_ATTEMPT.match(head)
+                and target_name is not None
+                and not looks_like_dice
             ):
                 try:
                     expr = parse(default_roll)
-                    target_name = head
-                except DiceParseError:
+                    expression_str = default_roll
+                except DiceParseError as exc:
                     await ctx.send(t(lang, "roll_invalid", error=str(exc)))
                     return
             else:
-                await ctx.send(t(lang, "roll_invalid", error=str(exc)))
+                # Surface a parse error: try parsing the input verbatim to
+                # produce a precise error message for the user.
+                try:
+                    parse(raw)
+                except DiceParseError as exc:
+                    await ctx.send(t(lang, "roll_invalid", error=str(exc)))
+                    return
+                # Defensive: should not reach here.
+                await ctx.send(t(lang, "roll_invalid", error="no dice or modifier"))
                 return
 
         if expr.is_empty:
@@ -183,7 +192,7 @@ class DiceCog(BaseCog):
                 ctx.author.id,
                 guild_id,
                 total,
-                head,
+                expression_str,
             )
 
         embed = self._build_embed(

@@ -10,11 +10,16 @@ Grammar (informal):
 The parser consumes the whole input — any garbage character produces
 ``DiceParseError``. Numerical limits prevent abuse (``50`` rolls per term,
 faces capped at ``99999``). The expression itself is capped at 100 characters.
+
+This module also exposes :func:`parse_roll_input`, a higher-level helper that
+splits free-form ``!roll`` arguments into an expression and an optional target
+name, tolerating arbitrary whitespace inside and around operators.
 """
 from __future__ import annotations
 
 import re
 from dataclasses import dataclass
+from typing import Optional
 
 MAX_ROLLS_PER_TERM = 50
 MAX_FACES = 99999
@@ -128,3 +133,85 @@ def parse(expression: str) -> ParsedExpression:
         raise DiceParseError(f"trailing characters: {expression[pos:]!r}")
 
     return ParsedExpression(dice=tuple(dice), modifiers=tuple(modifiers))
+
+
+# ---------------------------------------------------------------------------
+# Free-form input splitter
+# ---------------------------------------------------------------------------
+
+def _normalize_tokens(tokens: list[str]) -> list[str]:
+    """Glue lone ``+``/``-`` operator tokens onto the following token.
+
+    ``['2d6', '+', '5', 'Goblin']`` → ``['2d6', '+5', 'Goblin']``. This makes
+    the rest of the splitter agnostic to spaces around operators.
+    """
+    out: list[str] = []
+    i = 0
+    while i < len(tokens):
+        tok = tokens[i]
+        if tok in ("+", "-") and i + 1 < len(tokens):
+            out.append(tok + tokens[i + 1])
+            i += 2
+        else:
+            out.append(tok)
+            i += 1
+    return out
+
+
+def _join_expression_tokens(tokens: list[str]) -> str:
+    """Concatenate tokens, prefixing unsigned non-leading tokens with ``+``.
+
+    Without this, ``+5`` followed by ``1d20`` would be glued as ``+51d20``
+    (51 rolls of d20) instead of ``+5+1d20``.
+    """
+    if not tokens:
+        return ""
+    out = tokens[0]
+    for tok in tokens[1:]:
+        if tok and tok[0] not in "+-":
+            out += "+"
+        out += tok
+    return out
+
+
+def parse_roll_input(
+    raw: str,
+) -> tuple[Optional[ParsedExpression], str, Optional[str]]:
+    """Split free-form roll input into (expression, expression_str, target).
+
+    Walks tokens left-to-right, picking the longest prefix whose joined form
+    parses as a valid expression. The remaining tokens are joined with a
+    single space to form the target name. Whitespace around operators is
+    tolerated (``2d6 + 5 Goblin`` works the same as ``2d6+5 Goblin``).
+
+    Returns:
+        ``(parsed, joined_str, target)``. ``parsed`` is ``None`` if no leading
+        tokens form a valid expression — in that case, ``joined_str`` is empty
+        and the entire (normalized) input is the target.
+    """
+    raw = (raw or "").strip()
+    if not raw:
+        return None, "", None
+
+    tokens = _normalize_tokens(raw.split())
+    if not tokens:
+        return None, "", None
+
+    longest_k = 0
+    longest_expr: Optional[ParsedExpression] = None
+    longest_str = ""
+
+    # Greedy: try every prefix length and remember the longest one that parses.
+    for k in range(1, len(tokens) + 1):
+        candidate = _join_expression_tokens(tokens[:k])
+        try:
+            parsed = parse(candidate)
+        except DiceParseError:
+            continue
+        longest_k = k
+        longest_expr = parsed
+        longest_str = candidate
+
+    target_words = tokens[longest_k:]
+    target = " ".join(target_words) if target_words else None
+    return longest_expr, longest_str, target
