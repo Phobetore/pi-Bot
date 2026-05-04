@@ -239,3 +239,135 @@ class TestParseRollInput:
         assert expr.modifier_total == 3
         assert expr_str == "1d6+3"
         assert target == "Goblin"
+
+    # ── Whitespace tolerance ──────────────────────────────────────────
+    def test_tabs_treated_as_whitespace(self) -> None:
+        assert self._summary("1d20\t+5") == ("1d20+5", None)
+
+    def test_newlines_treated_as_whitespace(self) -> None:
+        assert self._summary("1d20\n+5") == ("1d20+5", None)
+
+    def test_multiple_spaces_collapsed(self) -> None:
+        assert self._summary("1d20    +    5") == ("1d20+5", None)
+
+    def test_leading_trailing_whitespace_stripped(self) -> None:
+        assert self._summary("   1d20+5   ") == ("1d20+5", None)
+
+    def test_target_with_extra_internal_spaces_normalized(self) -> None:
+        # Extra spaces inside a multi-word target collapse to single spaces.
+        assert self._summary("1d20 Big   Boss") == ("1d20", "Big Boss")
+
+    # ── Stray operators handled gracefully ────────────────────────────
+    def test_lone_operator_between_dice_and_target_is_dropped(self) -> None:
+        # ``1d20 + Goblin`` — the stray ``+`` would otherwise stick to ``Goblin``.
+        assert self._summary("1d20 + Goblin") == ("1d20", "Goblin")
+
+    def test_lone_minus_between_dice_and_target_is_dropped(self) -> None:
+        assert self._summary("1d20 - Goblin") == ("1d20", "Goblin")
+
+    def test_lone_plus_before_target_is_dropped(self) -> None:
+        # No expression at all, just ``+ Goblin``. Target should be "Goblin".
+        assert self._summary("+ Goblin") == ("", "Goblin")
+
+    def test_lone_plus_before_dice_merges(self) -> None:
+        # ``+`` followed by digits IS merged.
+        assert self._summary("+ 1d20") == ("+1d20", None)
+
+    def test_lone_minus_before_dice_merges(self) -> None:
+        assert self._summary("- 1d20") == ("-1d20", None)
+
+    def test_trailing_operator_in_compound_token_fails(self) -> None:
+        # ``1d20+`` is one token (no space) and the trailing ``+`` is invalid.
+        # The whole thing falls back to "no expression detected".
+        expr, expr_str, target = parse_roll_input("1d20+ Goblin")
+        assert expr is None
+        assert expr_str == ""
+        # The leading "1d20+" stays in the target — this is a parse error to
+        # surface to the user, not silently fix.
+        assert target == "1d20+ Goblin"
+
+    # ── Negative chains ───────────────────────────────────────────────
+    def test_chain_of_negative_modifiers(self) -> None:
+        assert self._summary("1d20 -5 -3") == ("1d20-5-3", None)
+
+    def test_subtract_dice_term_with_target(self) -> None:
+        assert self._summary("1d20 -1d4 Boss") == ("1d20-1d4", "Boss")
+
+    def test_negative_modifier_only_with_target(self) -> None:
+        assert self._summary("-5 Boss") == ("-5", "Boss")
+
+    # ── Greedy semantics ──────────────────────────────────────────────
+    def test_greedy_picks_longest_valid_prefix(self) -> None:
+        # ``5`` between dice and target is parsed as +5 modifier.
+        assert self._summary("1d20 5 Boss") == ("1d20+5", "Boss")
+
+    def test_three_dice_terms(self) -> None:
+        assert self._summary("1d20 1d20 1d20") == ("1d20+1d20+1d20", None)
+
+    def test_long_chain_with_target(self) -> None:
+        result = self._summary("1d20 + 2d6 + 4 + 1d4 + 3 Goblin")
+        assert result == ("1d20+2d6+4+1d4+3", "Goblin")
+
+    # ── Limits & invalid inputs ───────────────────────────────────────
+    def test_over_max_rolls_returns_no_expression(self) -> None:
+        expr, expr_str, target = parse_roll_input("100d6")
+        assert expr is None
+        assert target == "100d6"
+
+    def test_over_max_faces_returns_no_expression(self) -> None:
+        expr, expr_str, target = parse_roll_input("1d100000")
+        assert expr is None
+        assert target == "1d100000"
+
+    def test_zero_rolls_returns_no_expression(self) -> None:
+        expr, _, target = parse_roll_input("0d6")
+        assert expr is None
+        assert target == "0d6"
+
+    def test_invalid_second_term_keeps_only_valid_prefix(self) -> None:
+        # ``1d20`` is valid; ``100d6`` exceeds max rolls. Greedy keeps just
+        # the valid first term and pushes the over-limit term to target.
+        assert self._summary("1d20 100d6") == ("1d20", "100d6")
+
+    def test_invalid_dice_with_letter_suffix(self) -> None:
+        # ``5x`` — digit then letter, not a token. Becomes target.
+        assert self._summary("5x") == ("", "5x")
+
+    def test_broken_dice_token(self) -> None:
+        # ``1d`` missing faces. No expression match.
+        assert self._summary("1d") == ("", "1d")
+
+    def test_double_sign_token(self) -> None:
+        expr, _, target = parse_roll_input("++5")
+        assert expr is None
+        assert target == "++5"
+
+    # ── Cosmetic / target content ─────────────────────────────────────
+    def test_unicode_target(self) -> None:
+        assert self._summary("1d20 Café Naïve") == ("1d20", "Café Naïve")
+
+    def test_target_with_mention_text(self) -> None:
+        # Mentions in target name don't trigger pings (bot-wide
+        # allowed_mentions=None) but they still survive in the target string.
+        assert self._summary("1d20 @everyone") == ("1d20", "@everyone")
+
+    def test_target_with_emoji(self) -> None:
+        assert self._summary("1d20 🐉Boss") == ("1d20", "🐉Boss")
+
+    def test_target_with_markdown(self) -> None:
+        assert self._summary("1d20 **Boss**") == ("1d20", "**Boss**")
+
+    # ── Case sensitivity ──────────────────────────────────────────────
+    def test_uppercase_d(self) -> None:
+        assert self._summary("1D20") == ("1D20", None)
+
+    def test_mixed_case_d(self) -> None:
+        # Greedy joins ``1D6`` after ``1d20`` with a synthetic ``+``.
+        assert self._summary("1d20 1D6") == ("1d20+1D6", None)
+
+    # ── Modifier-only edge cases ──────────────────────────────────────
+    def test_zero_modifier_only(self) -> None:
+        assert self._summary("0") == ("0", None)
+
+    def test_zero_modifier_with_target(self) -> None:
+        assert self._summary("+0 Boss") == ("+0", "Boss")

@@ -140,17 +140,22 @@ def parse(expression: str) -> ParsedExpression:
 # ---------------------------------------------------------------------------
 
 def _normalize_tokens(tokens: list[str]) -> list[str]:
-    """Glue lone ``+``/``-`` operator tokens onto the following token.
+    """Glue lone ``+``/``-`` operator tokens onto the following numeric token.
 
-    ``['2d6', '+', '5', 'Goblin']`` → ``['2d6', '+5', 'Goblin']``. This makes
-    the rest of the splitter agnostic to spaces around operators.
+    ``['2d6', '+', '5', 'Goblin']`` → ``['2d6', '+5', 'Goblin']``.
+
+    Only merges when the next token starts with a digit; an operator followed
+    by a non-numeric token (``['1d20', '+', 'Goblin']``) is left alone so it
+    can be discarded later as garbage rather than concatenated into the target
+    name as ``+Goblin``.
     """
     out: list[str] = []
     i = 0
     while i < len(tokens):
         tok = tokens[i]
-        if tok in ("+", "-") and i + 1 < len(tokens):
-            out.append(tok + tokens[i + 1])
+        next_tok = tokens[i + 1] if i + 1 < len(tokens) else ""
+        if tok in ("+", "-") and next_tok and next_tok[0].isdigit():
+            out.append(tok + next_tok)
             i += 2
         else:
             out.append(tok)
@@ -212,6 +217,12 @@ def parse_roll_input(
         longest_expr = parsed
         longest_str = candidate
 
-    target_words = tokens[longest_k:]
+    # Discard any leading lone +/- tokens from the target — they are leftover
+    # operators that didn't bind to a numeric token (e.g. user typed
+    # ``1d20 + Goblin`` with a stray operator).
+    target_words = list(tokens[longest_k:])
+    while target_words and target_words[0] in ("+", "-"):
+        target_words.pop(0)
+
     target = " ".join(target_words) if target_words else None
     return longest_expr, longest_str, target

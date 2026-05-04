@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING
 
 from discord.ext import commands
 
-from ..dice_parser import DiceParseError, parse
+from ..dice_parser import DiceParseError, parse, parse_roll_input
 from ..state import is_valid_prefix
 from ..translations import SUPPORTED_LANGUAGES, t
 from ._base import BaseCog
@@ -57,21 +57,33 @@ class SettingsCog(BaseCog):
     async def set_default_roll(
         self, ctx: commands.Context, *, expression: str
     ) -> None:
-        """Set the default dice expression used when ``!roll`` has no argument."""
+        """Set the default dice expression used when ``!roll`` has no argument.
+
+        Accepts the same flexible syntax as ``!roll`` itself (e.g. ``1d20 + 5``).
+        A target name is rejected — defaults are expressions only.
+        """
         lang = self._lang(ctx)
         cleaned = expression.strip()
-        try:
-            parsed = parse(cleaned)
-        except DiceParseError as exc:
-            await ctx.send(t(lang, "defaultroll_invalid", error=str(exc)))
+        parsed, normalized, target = parse_roll_input(cleaned)
+        if parsed is None or not parsed.has_dice:
+            try:
+                parse(cleaned)
+            except DiceParseError as exc:
+                await ctx.send(t(lang, "defaultroll_invalid", error=str(exc)))
+                return
+            await ctx.send(
+                t(lang, "defaultroll_invalid", error="no dice in expression")
+            )
             return
-        if not parsed.has_dice:
-            await ctx.send(t(lang, "defaultroll_invalid", error="no dice in expression"))
+        if target is not None:
+            await ctx.send(
+                t(lang, "defaultroll_invalid", error=f"unexpected target name {target!r}")
+            )
             return
         assert ctx.guild is not None
-        await self.bot.state.set_server_default_roll(ctx.guild.id, cleaned)
+        await self.bot.state.set_server_default_roll(ctx.guild.id, normalized)
         await self.bot.state.save()
-        await ctx.send(t(lang, "defaultroll_set", expression=cleaned))
+        await ctx.send(t(lang, "defaultroll_set", expression=normalized))
 
 
 def setup(bot: "PiBot") -> None:
