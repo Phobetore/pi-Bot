@@ -139,27 +139,56 @@ def parse(expression: str) -> ParsedExpression:
 # Free-form input splitter
 # ---------------------------------------------------------------------------
 
-def _normalize_tokens(tokens: list[str]) -> list[str]:
-    """Glue lone ``+``/``-`` operator tokens onto the following numeric token.
+def _split_trailing_ops(tokens: list[str]) -> list[str]:
+    """Split off trailing ``+``/``-`` characters from compound tokens.
 
-    ``['2d6', '+', '5', 'Goblin']`` → ``['2d6', '+5', 'Goblin']``.
+    ``['1d20+', 'Goblin']`` → ``['1d20', '+', 'Goblin']``.
+    ``['1d20++']``          → ``['1d20', '+', '+']``.
 
-    Only merges when the next token starts with a digit; an operator followed
-    by a non-numeric token (``['1d20', '+', 'Goblin']``) is left alone so it
-    can be discarded later as garbage rather than concatenated into the target
-    name as ``+Goblin``.
+    Tokens that ARE just an operator (``+``, ``-``) are left alone.
     """
+    out: list[str] = []
+    for tok in tokens:
+        trailing: list[str] = []
+        while len(tok) > 1 and tok[-1] in "+-":
+            trailing.append(tok[-1])
+            tok = tok[:-1]
+        out.append(tok)
+        out.extend(reversed(trailing))
+    return out
+
+
+def _normalize_tokens(tokens: list[str]) -> list[str]:
+    """Pre-process a token list to make space-tolerant joining unambiguous.
+
+    Two passes:
+
+    1. Trailing-operator split — ``1d20+`` becomes ``1d20`` then ``+``.
+    2. Lone-operator handling:
+       - Followed by a numeric token: glue them (``+``, ``5`` → ``+5``).
+       - Followed by another sign token: drop the lone operator as redundant
+         (``+ +5`` → ``+5``).
+       - Otherwise: leave the lone operator in place; later steps will strip
+         it from the target name if it ends up there.
+    """
+    tokens = _split_trailing_ops(tokens)
     out: list[str] = []
     i = 0
     while i < len(tokens):
         tok = tokens[i]
         next_tok = tokens[i + 1] if i + 1 < len(tokens) else ""
-        if tok in ("+", "-") and next_tok and next_tok[0].isdigit():
-            out.append(tok + next_tok)
-            i += 2
-        else:
-            out.append(tok)
-            i += 1
+        if tok in ("+", "-"):
+            if next_tok and next_tok[0].isdigit():
+                out.append(tok + next_tok)
+                i += 2
+                continue
+            if next_tok and next_tok[0] in "+-":
+                # The next token already carries its own sign; this lone
+                # operator is redundant garbage.
+                i += 1
+                continue
+        out.append(tok)
+        i += 1
     return out
 
 
@@ -217,12 +246,14 @@ def parse_roll_input(
         longest_expr = parsed
         longest_str = candidate
 
-    # Discard any leading lone +/- tokens from the target — they are leftover
-    # operators that didn't bind to a numeric token (e.g. user typed
-    # ``1d20 + Goblin`` with a stray operator).
+    # Discard any leading or trailing lone +/- tokens from the target — they
+    # are leftover operators that didn't bind to a numeric token (e.g. user
+    # typed ``1d20 + Goblin`` or ``1d20 Goblin +``).
     target_words = list(tokens[longest_k:])
     while target_words and target_words[0] in ("+", "-"):
         target_words.pop(0)
+    while target_words and target_words[-1] in ("+", "-"):
+        target_words.pop()
 
     target = " ".join(target_words) if target_words else None
     return longest_expr, longest_str, target

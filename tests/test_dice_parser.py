@@ -276,15 +276,43 @@ class TestParseRollInput:
     def test_lone_minus_before_dice_merges(self) -> None:
         assert self._summary("- 1d20") == ("-1d20", None)
 
-    def test_trailing_operator_in_compound_token_fails(self) -> None:
-        # ``1d20+`` is one token (no space) and the trailing ``+`` is invalid.
-        # The whole thing falls back to "no expression detected".
-        expr, expr_str, target = parse_roll_input("1d20+ Goblin")
-        assert expr is None
-        assert expr_str == ""
-        # The leading "1d20+" stays in the target — this is a parse error to
-        # surface to the user, not silently fix.
-        assert target == "1d20+ Goblin"
+    def test_trailing_plus_with_target_is_lenient(self) -> None:
+        # ``1d20+`` has a stray trailing ``+`` that doesn't bind to anything.
+        # We split it off and discard it, keeping the well-formed prefix.
+        assert self._summary("1d20+ Goblin") == ("1d20", "Goblin")
+
+    def test_trailing_minus_with_target_is_lenient(self) -> None:
+        assert self._summary("1d20- Goblin") == ("1d20", "Goblin")
+
+    def test_trailing_plus_then_number_keeps_operator(self) -> None:
+        # When the trailing ``+`` is followed by a number after a space, the
+        # split-off operator merges with the number to form a modifier.
+        assert self._summary("1d20+ 5 Goblin") == ("1d20+5", "Goblin")
+
+    def test_trailing_minus_then_number_keeps_operator(self) -> None:
+        assert self._summary("1d20- 5 Goblin") == ("1d20-5", "Goblin")
+
+    def test_trailing_op_alone_is_dropped(self) -> None:
+        # ``1d20+`` with nothing after just rolls 1d20.
+        assert self._summary("1d20+") == ("1d20", None)
+        assert self._summary("1d20-") == ("1d20", None)
+
+    def test_double_trailing_op_alone_is_dropped(self) -> None:
+        # Both trailing operators are split off and dropped.
+        assert self._summary("1d20++") == ("1d20", None)
+
+    def test_redundant_operator_before_signed_number_is_dropped(self) -> None:
+        # ``1d20+ +5`` — the standalone ``+`` is redundant because ``+5``
+        # already carries its own sign.
+        assert self._summary("1d20+ +5") == ("1d20+5", None)
+
+    def test_redundant_operator_before_negative_number_is_dropped(self) -> None:
+        assert self._summary("1d20+ -5") == ("1d20-5", None)
+
+    def test_trailing_operator_in_target_is_dropped(self) -> None:
+        # Stray trailing ``+`` after a target name should not appear in the
+        # rendered target.
+        assert self._summary("1d20 Goblin +") == ("1d20", "Goblin")
 
     # ── Negative chains ───────────────────────────────────────────────
     def test_chain_of_negative_modifiers(self) -> None:
