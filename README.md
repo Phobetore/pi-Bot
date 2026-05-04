@@ -76,15 +76,20 @@ The bot creates `data/` and `logs/` on first start.
 
 ## Commands
 
+Each command is available both as a **prefix command** (e.g. `!roll`) and as
+a **slash command** (e.g. `/roll`). Slash commands offer parameter
+descriptions, autocomplete, and Discord-side permission gating.
+
 | Command | Description | Permission |
 |---|---|---|
-| `!roll <expr> [target]` (alias `!r`) | Roll dice. | everyone |
-| `!setcolor <name>` | Set your embed color. | everyone |
-| `!getcolor` | Show your color. | everyone |
-| `!defaultRoll <expr>` | Set server default roll. | `Manage Server` |
-| `!setlang <en\|fr\|de\|es>` | Set server language. | `Manage Server` |
-| `!setprefix <prefix>` | Set server prefix (1–5 visible non-alphanumeric chars). | `Manage Server` |
-| `!help` (alias `!h`) | Show localized help. | everyone |
+| `!roll <expr> [target]` (alias `!r`, slash `/roll`) | Roll dice. | everyone |
+| `!setcolor <name>` (slash `/setcolor`) | Set your embed color. | everyone |
+| `!getcolor` (slash `/getcolor`) | Show your color. | everyone |
+| `!setrollshort on\|off` (slash `/setrollshort`) | Toggle compact single-line roll output for yourself. | everyone |
+| `!defaultRoll <expr>` (slash `/defaultroll`) | Set server default roll. | `Manage Server` |
+| `!setlang <en\|fr\|de\|es>` (slash `/setlang`) | Set server language. | `Manage Server` |
+| `!setprefix <prefix>` (slash `/setprefix`) | Set server prefix (1–5 visible non-alphanumeric chars). | `Manage Server` |
+| `!help` (alias `!h`, slash `/help`) | Show localized help. | everyone |
 
 ### Dice expressions
 

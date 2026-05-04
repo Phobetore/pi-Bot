@@ -15,18 +15,12 @@ if TYPE_CHECKING:
 
 
 class HelpCog(BaseCog):
-    @commands.command(name="help", aliases=["h"])
-    @commands.cooldown(1, 3, commands.BucketType.user)
-    async def help_command(self, ctx: commands.Context) -> None:
-        lang = self._lang(ctx)
-        prefix = self._prefix(ctx)
-
+    def _build_help_embed(self, lang: str, prefix: str) -> discord.Embed:
         embed = discord.Embed(
             title=t(lang, "help_title"),
             description=t(lang, "help_description"),
             color=discord.Color.purple(),
         )
-
         embed.add_field(
             name=f"🎲 `{prefix}roll` / `{prefix}r` — {t(lang, 'roll_title')}",
             value=f"{t(lang, 'roll_desc')}\n```\n{prefix}roll 2d6+3 Goblin\n```",
@@ -48,6 +42,14 @@ class HelpCog(BaseCog):
             inline=False,
         )
         embed.add_field(
+            name=f"📏 `{prefix}setrollshort` — {t(lang, 'rollshort_title')}",
+            value=(
+                f"{t(lang, 'rollshort_desc')}\n"
+                f"```\n{prefix}setrollshort on\n{prefix}setrollshort off\n```"
+            ),
+            inline=False,
+        )
+        embed.add_field(
             name=f"🔁 `{prefix}defaultRoll` — {t(lang, 'defaultroll_title')}",
             value=(
                 f"{t(lang, 'defaultroll_desc')}\n"
@@ -65,9 +67,23 @@ class HelpCog(BaseCog):
             value=f"{t(lang, 'setprefix_desc')}\n```\n{prefix}setprefix ?\n```",
             inline=False,
         )
-
         embed.set_footer(text=t(lang, "help_footer"))
-        await ctx.send(embed=embed)
+        return embed
+
+    @commands.command(name="help", aliases=["h"])
+    @commands.cooldown(1, 3, commands.BucketType.user)
+    async def help_command(self, ctx: commands.Context) -> None:
+        lang = self._lang(ctx)
+        prefix = self._prefix(ctx)
+        await ctx.send(embed=self._build_help_embed(lang, prefix))
+
+    @discord.slash_command(name="help", description="Show available commands")
+    async def help_slash(self, ctx: discord.ApplicationContext) -> None:
+        lang = self.bot.state.get_server_language(
+            ctx.guild_id if ctx.guild_id else None
+        )
+        prefix = self.bot.config.default_prefix
+        await ctx.respond(embed=self._build_help_embed(lang, prefix), ephemeral=True)
 
 
 def setup(bot: "PiBot") -> None:

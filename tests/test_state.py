@@ -224,3 +224,50 @@ class TestColorIntegrity:
         for canonical in CANONICAL_COLORS:
             await state.set_user_color(1, canonical)
             assert state.get_user_color_name(1) == canonical
+
+
+class TestUserCompactPreference:
+    async def test_default_is_false(self, state: State) -> None:
+        assert state.get_user_compact(123) is False
+
+    async def test_set_and_get_true(self, state: State) -> None:
+        await state.set_user_compact(123, True)
+        assert state.get_user_compact(123) is True
+
+    async def test_set_back_to_false(self, state: State) -> None:
+        await state.set_user_compact(123, True)
+        await state.set_user_compact(123, False)
+        assert state.get_user_compact(123) is False
+
+    async def test_marks_dirty(self, state: State) -> None:
+        await state.set_user_compact(123, True)
+        assert state.is_dirty
+
+    async def test_persists_across_reload(self, tmp_path) -> None:
+        s1 = State(tmp_path)
+        s1.load()
+        await s1.set_user_compact(7, True)
+        await s1.save()
+        s2 = State(tmp_path)
+        s2.load()
+        assert s2.get_user_compact(7) is True
+
+    async def test_color_and_compact_coexist(self, state: State) -> None:
+        await state.set_user_color(7, "red")
+        await state.set_user_compact(7, True)
+        assert state.get_user_color_name(7) == "red"
+        assert state.get_user_compact(7) is True
+
+    async def test_corrupted_compact_value_dropped(self, tmp_path) -> None:
+        import json as _json
+
+        (tmp_path / "user_preferences.json").write_text(
+            _json.dumps({"users": {"7": {"color": "red", "compact": "yes"}}}),
+            encoding="utf-8",
+        )
+        state = State(tmp_path)
+        state.load()
+        # color survives, compact (wrong type) is dropped → default False.
+        assert state.get_user_color_name(7) == "red"
+        assert state.get_user_compact(7) is False
+        assert state.is_dirty

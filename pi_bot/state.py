@@ -71,7 +71,7 @@ class State:
         further isinstance checks. Marks dirty so repairs are persisted on the
         next save.
         """
-        # ── user_preferences: {"users": {<id_str>: {"color": <str>}}}
+        # ── user_preferences: {"users": {<id_str>: {"color": str, "compact": bool}}}
         raw_users = self._user_preferences.get("users")
         if not isinstance(raw_users, dict):
             self._user_preferences = {"users": {}}
@@ -79,10 +79,20 @@ class State:
         else:
             cleaned_users: dict[str, dict[str, Any]] = {}
             for uid, prefs in raw_users.items():
-                if isinstance(uid, str) and isinstance(prefs, dict):
-                    cleaned_users[uid] = prefs
-                else:
+                if not (isinstance(uid, str) and isinstance(prefs, dict)):
                     self._dirty = True
+                    continue
+                clean: dict[str, Any] = {}
+                color = prefs.get("color")
+                if isinstance(color, str):
+                    clean["color"] = color
+                compact = prefs.get("compact")
+                # bool is subclass of int — be strict.
+                if isinstance(compact, bool):
+                    clean["compact"] = compact
+                elif "compact" in prefs:
+                    self._dirty = True  # wrong type
+                cleaned_users[uid] = clean
             if cleaned_users != raw_users:
                 self._dirty = True
             self._user_preferences["users"] = cleaned_users
@@ -182,6 +192,22 @@ class State:
             users.setdefault(str(user_id), {})["color"] = canonical
             self._dirty = True
         return canonical
+
+    def get_user_compact(self, user_id: int) -> bool:
+        """Whether this user prefers compact roll output. Defaults to False."""
+        users = self._user_preferences.get("users", {})
+        prefs = users.get(str(user_id), {})
+        if isinstance(prefs, dict):
+            value = prefs.get("compact")
+            if isinstance(value, bool):
+                return value
+        return False
+
+    async def set_user_compact(self, user_id: int, compact: bool) -> None:
+        async with self._lock:
+            users = self._user_preferences.setdefault("users", {})
+            users.setdefault(str(user_id), {})["compact"] = bool(compact)
+            self._dirty = True
 
     # ------------------------------------------------------------------
     # User stats
