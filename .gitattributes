@@ -1,0 +1,19 @@
+# Default: let Git auto-detect text files and normalize line endings on commit.
+* text=auto
+
+# Shell scripts MUST keep LF line endings to run on Linux/macOS, regardless of
+# checkout platform (Windows would otherwise rewrite them to CRLF).
+*.sh text eol=lf
+
+# PowerShell scripts are happier with native CRLF on Windows checkouts.
+*.ps1 text eol=crlf
+
+# Python sources: LF, the de-facto standard.
+*.py text eol=lf
+
+# Treat binary blobs as such.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary

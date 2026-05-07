@@ -13,6 +13,9 @@ data/
 logs/
 *.log
 
+# Runtime files (PID files etc.)
+.run/
+
 # Python
 __pycache__/
 *.pyc

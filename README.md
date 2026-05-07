@@ -74,6 +74,58 @@ pi-bot
 
 The bot creates `data/` and `logs/` on first start.
 
+### Background process scripts
+
+`scripts/` contains small helpers for managing the bot as a background process:
+
+| Linux / macOS | Windows | Action |
+|---|---|---|
+| `scripts/start.sh` | `scripts/start.ps1` | Launch the bot detached, write PID to `.run/pi-bot.pid`, redirect output to `logs/console.log` |
+| `scripts/stop.sh` | `scripts/stop.ps1` | Send a graceful stop signal, wait up to 15s for clean shutdown, fall back to forceful kill |
+| `scripts/restart.sh` | `scripts/restart.ps1` | Stop (if running) then start |
+| `scripts/status.sh` | `scripts/status.ps1` | Print whether the bot is alive (exit codes: 0 running, 1 stopped, 2 stale PID file) |
+
+Make the POSIX scripts executable on first use:
+
+```bash
+chmod +x scripts/*.sh
+./scripts/start.sh
+./scripts/status.sh
+./scripts/stop.sh
+```
+
+On Windows:
+
+```powershell
+.\scripts\start.ps1
+.\scripts\status.ps1
+.\scripts\stop.ps1
+```
+
+The scripts auto-detect a local `.venv` (POSIX: `.venv/bin/python`, Windows:
+`.venv\Scripts\python.exe`) and use it if present.
+
+> **Windows note.** Windows lacks a real SIGTERM, so `stop.ps1` first attempts
+> `taskkill` (graceful), then falls back to `Stop-Process -Force` after the
+> timeout. A forceful stop loses at most `PI_BOT_SAVE_INTERVAL` seconds of
+> state (60s by default).
+
+### Production deployment (systemd)
+
+For Linux production deployments, `scripts/pi-bot.service` is a hardened
+systemd unit. Adjust `User`, `Group`, `WorkingDirectory`, and the
+`EnvironmentFile` path, then:
+
+```bash
+sudo cp scripts/pi-bot.service /etc/systemd/system/pi-bot.service
+sudo systemctl daemon-reload
+sudo systemctl enable --now pi-bot
+journalctl -u pi-bot -f
+```
+
+systemd sends `SIGTERM` on stop/restart, which the bot handles cleanly via
+its asyncio shutdown path (`TimeoutStopSec=30s`).
+
 ## Commands
 
 Each command is available both as a **prefix command** (e.g. `!roll`) and as
