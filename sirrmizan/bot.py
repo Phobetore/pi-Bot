@@ -48,6 +48,19 @@ class SirrMizan(commands.Bot):
         self.state = state
         self._save_task: asyncio.Task[None] | None = None
 
+        # Load every cog right at construction time. This works across
+        # py-cord versions because ``load_extension`` is synchronous and
+        # ``add_cog`` does not require a running event loop. Doing it here
+        # avoids relying on ``setup_hook``, which behaves differently across
+        # forks and versions.
+        for extension in _discover_extensions():
+            try:
+                self.load_extension(extension)
+            except Exception:
+                logger.exception("Failed to load extension %s", extension)
+                raise
+            logger.info("Loaded extension %s", extension)
+
     # ------------------------------------------------------------------
     # Prefix resolution
     # ------------------------------------------------------------------
@@ -63,17 +76,6 @@ class SirrMizan(commands.Bot):
     # ------------------------------------------------------------------
     # Lifecycle
     # ------------------------------------------------------------------
-    async def setup_hook(self) -> None:
-        for extension in _discover_extensions():
-            try:
-                self.load_extension(extension)
-            except Exception:
-                logger.exception("Failed to load extension %s", extension)
-                raise
-            logger.info("Loaded extension %s", extension)
-
-        self._save_task = asyncio.create_task(self._save_loop(), name="sirrmizan-saver")
-
     async def on_ready(self) -> None:
         user = self.user
         logger.info(
@@ -81,6 +83,12 @@ class SirrMizan(commands.Bot):
             user,
             user.id if user is not None else "?",
         )
+        # ``on_ready`` may fire more than once on reconnect; guard against
+        # spawning duplicate save tasks.
+        if self._save_task is None or self._save_task.done():
+            self._save_task = asyncio.create_task(
+                self._save_loop(), name="sirrmizan-saver"
+            )
 
     async def on_command_error(
         self, ctx: commands.Context, error: Exception
