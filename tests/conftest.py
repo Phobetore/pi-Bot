@@ -5,7 +5,7 @@ from pathlib import Path
 
 import pytest
 
-from pi_bot.state import State
+from sirrmizan.state import State
 
 
 @pytest.fixture

@@ -52,10 +52,10 @@ def load_config(env_file: Path | None = None) -> Config:
     else:
         load_dotenv(override=False)
 
-    token = os.environ.get("PI_BOT_TOKEN", "").strip() or None
-    default_prefix = os.environ.get("PI_BOT_DEFAULT_PREFIX", "").strip() or None
+    token = os.environ.get("SIRRMIZAN_TOKEN", "").strip() or None
+    default_prefix = os.environ.get("SIRRMIZAN_DEFAULT_PREFIX", "").strip() or None
 
-    legacy_path = Path(os.environ.get("PI_BOT_CONFIG", "config.json"))
+    legacy_path = Path(os.environ.get("SIRRMIZAN_CONFIG", "config.json"))
     if (token is None or default_prefix is None) and legacy_path.exists():
         legacy = _read_legacy_config(legacy_path)
         if token is None:
@@ -69,30 +69,30 @@ def load_config(env_file: Path | None = None) -> Config:
 
     if not token:
         raise ConfigError(
-            "PI_BOT_TOKEN is required. Set it in your environment or .env file. "
+            "SIRRMIZAN_TOKEN is required. Set it in your environment or .env file. "
             "See .env.example."
         )
 
     default_prefix = default_prefix or "!"
     if not 1 <= len(default_prefix) <= 5:
-        raise ConfigError("PI_BOT_DEFAULT_PREFIX must be 1-5 characters")
+        raise ConfigError("SIRRMIZAN_DEFAULT_PREFIX must be 1-5 characters")
 
-    data_dir = Path(os.environ.get("PI_BOT_DATA_DIR", "data")).resolve()
-    log_dir = Path(os.environ.get("PI_BOT_LOG_DIR", "logs")).resolve()
+    data_dir = Path(os.environ.get("SIRRMIZAN_DATA_DIR", "data")).resolve()
+    log_dir = Path(os.environ.get("SIRRMIZAN_LOG_DIR", "logs")).resolve()
 
-    raw_save_interval = os.environ.get("PI_BOT_SAVE_INTERVAL", "60")
+    raw_save_interval = os.environ.get("SIRRMIZAN_SAVE_INTERVAL", "60")
     try:
         save_interval = float(raw_save_interval)
     except ValueError as exc:
         raise ConfigError(
-            f"PI_BOT_SAVE_INTERVAL must be a number, got {raw_save_interval!r}"
+            f"SIRRMIZAN_SAVE_INTERVAL must be a number, got {raw_save_interval!r}"
         ) from exc
     if save_interval <= 0:
-        raise ConfigError("PI_BOT_SAVE_INTERVAL must be strictly positive")
+        raise ConfigError("SIRRMIZAN_SAVE_INTERVAL must be strictly positive")
 
-    log_level = os.environ.get("PI_BOT_LOG_LEVEL", "INFO").upper()
+    log_level = os.environ.get("SIRRMIZAN_LOG_LEVEL", "INFO").upper()
     if log_level not in {"DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"}:
-        raise ConfigError(f"Invalid PI_BOT_LOG_LEVEL: {log_level!r}")
+        raise ConfigError(f"Invalid SIRRMIZAN_LOG_LEVEL: {log_level!r}")
 
     data_dir.mkdir(parents=True, exist_ok=True)
     log_dir.mkdir(parents=True, exist_ok=True)

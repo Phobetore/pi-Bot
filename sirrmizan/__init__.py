@@ -1,7 +1,7 @@
-"""pi-Bot — a Discord dice-rolling bot."""
+"""SirrMizan — a Discord dice-rolling bot."""
 from importlib.metadata import PackageNotFoundError, version as _pkg_version
 
 try:
-    __version__ = _pkg_version("pi-bot")
+    __version__ = _pkg_version("sirrmizan")
 except PackageNotFoundError:  # not installed (e.g. running from a fresh checkout)
     __version__ = "0.0.0+local"

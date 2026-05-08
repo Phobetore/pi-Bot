@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import pytest
 
-from pi_bot.dice_parser import (
+from sirrmizan.dice_parser import (
     MAX_FACES,
     MAX_ROLLS_PER_TERM,
     DiceParseError,

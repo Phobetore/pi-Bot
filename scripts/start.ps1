@@ -1,9 +1,9 @@
 ﻿<#
 .SYNOPSIS
-    Starts pi-Bot in the background and writes its PID to a file.
+    Starts SirrMizan in the background and writes its PID to a file.
 
 .PARAMETER PidFile
-    Where to write the PID. Defaults to .run\pi-bot.pid
+    Where to write the PID. Defaults to .run\sirrmizan.pid
 
 .PARAMETER LogFile
     Where to send stdout (and stderr to LogFile.err). Defaults to logs\console.log
@@ -26,7 +26,7 @@ $ErrorActionPreference = 'Stop'
 $ProjectRoot = Split-Path -Parent $PSScriptRoot
 Set-Location $ProjectRoot
 
-if (-not $PidFile) { $PidFile = Join-Path $ProjectRoot '.run\pi-bot.pid' }
+if (-not $PidFile) { $PidFile = Join-Path $ProjectRoot '.run\sirrmizan.pid' }
 if (-not $LogFile) { $LogFile = Join-Path $ProjectRoot 'logs\console.log' }
 
 # Create directories if needed.
@@ -39,7 +39,7 @@ if (Test-Path $PidFile) {
     if ($existing) {
         $existing = $existing.Trim()
         if ($existing -and (Get-Process -Id $existing -ErrorAction SilentlyContinue)) {
-            Write-Host "pi-Bot is already running (pid $existing)"
+            Write-Host "SirrMizan is already running (pid $existing)"
             exit 1
         }
     }
@@ -61,7 +61,7 @@ $ErrLogFile = $LogFile + '.err'
 # Start the bot detached, with stdout and stderr going to log files.
 $proc = Start-Process `
     -FilePath $Python `
-    -ArgumentList '-m', 'pi_bot' `
+    -ArgumentList '-m', 'sirrmizan' `
     -WorkingDirectory $ProjectRoot `
     -WindowStyle Hidden `
     -RedirectStandardOutput $LogFile `
@@ -75,9 +75,9 @@ $proc.Id | Out-File -FilePath $PidFile -Encoding ascii -NoNewline
 # Heartbeat check: did the process survive the first half-second?
 Start-Sleep -Milliseconds 300
 if (-not (Get-Process -Id $proc.Id -ErrorAction SilentlyContinue)) {
-    Write-Host "pi-Bot failed to start — see $LogFile and $ErrLogFile"
+    Write-Host "SirrMizan failed to start — see $LogFile and $ErrLogFile"
     Remove-Item $PidFile -Force -ErrorAction SilentlyContinue
     exit 1
 }
 
-Write-Host "pi-Bot started (pid $($proc.Id), log: $LogFile)"
+Write-Host "SirrMizan started (pid $($proc.Id), log: $LogFile)"

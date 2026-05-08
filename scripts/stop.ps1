@@ -1,6 +1,6 @@
 ﻿<#
 .SYNOPSIS
-    Stops pi-Bot. Tries a graceful close first; falls back to a forceful kill
+    Stops SirrMizan. Tries a graceful close first; falls back to a forceful kill
     after TimeoutSeconds.
 
 .NOTES
@@ -8,7 +8,7 @@
     WM_CLOSE and works for processes with a window. Console-only Python
     processes will refuse and need ``Stop-Process -Force``. With the bot's
     periodic saver running every 60s by default, a forceful stop loses at
-    most that much state — see PI_BOT_SAVE_INTERVAL.
+    most that much state — see SIRRMIZAN_SAVE_INTERVAL.
 #>
 [CmdletBinding()]
 param(
@@ -22,10 +22,10 @@ $ErrorActionPreference = 'Stop'
 $ProjectRoot = Split-Path -Parent $PSScriptRoot
 Set-Location $ProjectRoot
 
-if (-not $PidFile) { $PidFile = Join-Path $ProjectRoot '.run\pi-bot.pid' }
+if (-not $PidFile) { $PidFile = Join-Path $ProjectRoot '.run\sirrmizan.pid' }
 
 if (-not (Test-Path $PidFile)) {
-    Write-Host "no pidfile at $PidFile — is pi-Bot running?"
+    Write-Host "no pidfile at $PidFile — is SirrMizan running?"
     exit 1
 }
 
@@ -42,7 +42,7 @@ if (-not (Get-Process -Id $processId -ErrorAction SilentlyContinue)) {
     exit 0
 }
 
-Write-Host ("stopping pi-Bot (pid {0}, waiting up to {1}s)..." -f $processId, $TimeoutSeconds)
+Write-Host ("stopping SirrMizan (pid {0}, waiting up to {1}s)..." -f $processId, $TimeoutSeconds)
 
 # Try a graceful close first. /T propagates to child processes.
 & taskkill /PID $processId /T 2>&1 | Out-Null
@@ -52,7 +52,7 @@ $deadline = (Get-Date).AddSeconds($TimeoutSeconds)
 while ((Get-Date) -lt $deadline) {
     if (-not (Get-Process -Id $processId -ErrorAction SilentlyContinue)) {
         Remove-Item $PidFile -Force
-        Write-Host "pi-Bot stopped cleanly"
+        Write-Host "SirrMizan stopped cleanly"
         exit 0
     }
     Start-Sleep -Milliseconds 500

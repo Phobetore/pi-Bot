@@ -1,31 +1,31 @@
-# systemd unit for pi-Bot.
+# systemd unit for SirrMizan.
 #
 # Install:
-#   sudo cp scripts/pi-bot.service /etc/systemd/system/pi-bot.service
-#   sudo systemctl edit pi-bot.service           # adjust User/WorkingDirectory
+#   sudo cp scripts/sirrmizan.service /etc/systemd/system/sirrmizan.service
+#   sudo systemctl edit sirrmizan.service           # adjust User/WorkingDirectory
 #   sudo systemctl daemon-reload
-#   sudo systemctl enable --now pi-bot
+#   sudo systemctl enable --now sirrmizan
 #
 # Logs:
-#   journalctl -u pi-bot -f
+#   journalctl -u sirrmizan -f
 #   tail -f <WorkingDirectory>/logs/app.log
 #
 # systemd sends SIGTERM on `stop`/`restart`, which the bot handles cleanly via
 # its asyncio shutdown path (final state save before exit).
 
 [Unit]
-Description=pi-Bot Discord dice rolling bot
+Description=SirrMizan Discord dice rolling bot
 After=network-online.target
 Wants=network-online.target
 
 [Service]
 Type=simple
 # Adjust these to your deployment.
-User=pibot
-Group=pibot
-WorkingDirectory=/opt/pi-bot
-EnvironmentFile=/opt/pi-bot/.env
-ExecStart=/opt/pi-bot/.venv/bin/python -m pi_bot
+User=sirrmizan
+Group=sirrmizan
+WorkingDirectory=/opt/sirrmizan
+EnvironmentFile=/opt/sirrmizan/.env
+ExecStart=/opt/sirrmizan/.venv/bin/python -m sirrmizan
 
 # Sane restart policy. Don't restart on a clean exit (e.g. owner-issued
 # shutdown) but do restart on crashes and signals.
@@ -42,7 +42,7 @@ NoNewPrivileges=true
 PrivateTmp=true
 ProtectSystem=strict
 ProtectHome=true
-ReadWritePaths=/opt/pi-bot/data /opt/pi-bot/logs
+ReadWritePaths=/opt/sirrmizan/data /opt/sirrmizan/logs
 ProtectKernelTunables=true
 ProtectKernelModules=true
 ProtectControlGroups=true

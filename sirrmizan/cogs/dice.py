@@ -15,10 +15,10 @@ from ..translations import t
 from ._base import BaseCog
 
 if TYPE_CHECKING:
-    from ..bot import PiBot
+    from ..bot import SirrMizan
 
 logger = logging.getLogger(__name__)
-audit_logger = logging.getLogger("pi_bot.audit")
+audit_logger = logging.getLogger("sirrmizan.audit")
 
 # SystemRandom is seeded from the OS entropy pool — appropriate when fairness
 # matters to users.
@@ -506,5 +506,5 @@ class DiceCog(BaseCog):
         await ctx.respond(t(lang, key), ephemeral=True)
 
 
-def setup(bot: "PiBot") -> None:
+def setup(bot: "SirrMizan") -> None:
     bot.add_cog(DiceCog(bot))

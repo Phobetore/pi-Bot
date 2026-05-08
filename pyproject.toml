@@ -3,7 +3,7 @@ requires = ["setuptools>=68", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "pi-bot"
+name = "sirrmizan"
 version = "1.0.0"
 description = "Discord bot for tabletop dice rolling with per-server preferences and i18n."
 readme = "README.md"
@@ -32,10 +32,10 @@ dev = [
 ]
 
 [project.scripts]
-pi-bot = "pi_bot.__main__:main"
+sirrmizan = "sirrmizan.__main__:main"
 
 [tool.setuptools.packages.find]
-include = ["pi_bot*"]
+include = ["sirrmizan*"]
 exclude = ["tests*"]
 
 [tool.pytest.ini_options]

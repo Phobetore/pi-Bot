@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import pytest
 
-from pi_bot.colors import CANONICAL_COLORS, DEFAULT_COLOR, hex_for, resolve
+from sirrmizan.colors import CANONICAL_COLORS, DEFAULT_COLOR, hex_for, resolve
 
 
 class TestResolve:

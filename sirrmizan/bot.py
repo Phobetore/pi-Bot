@@ -14,11 +14,11 @@ from .state import State
 from .translations import t
 
 logger = logging.getLogger(__name__)
-audit_logger = logging.getLogger("pi_bot.audit")
+audit_logger = logging.getLogger("sirrmizan.audit")
 
 
 def _discover_extensions() -> tuple[str, ...]:
-    """Return all public cog module dotted-paths under ``pi_bot.cogs``.
+    """Return all public cog module dotted-paths under ``sirrmizan.cogs``.
 
     Modules whose name starts with ``_`` (e.g. ``_base``) are excluded.
     """
@@ -29,7 +29,7 @@ def _discover_extensions() -> tuple[str, ...]:
     )
 
 
-class PiBot(commands.Bot):
+class SirrMizan(commands.Bot):
     """Bot subclass holding shared ``State`` and ``Config``."""
 
     def __init__(self, config: Config, state: State) -> None:
@@ -72,7 +72,7 @@ class PiBot(commands.Bot):
                 raise
             logger.info("Loaded extension %s", extension)
 
-        self._save_task = asyncio.create_task(self._save_loop(), name="pi-bot-saver")
+        self._save_task = asyncio.create_task(self._save_loop(), name="sirrmizan-saver")
 
     async def on_ready(self) -> None:
         user = self.user

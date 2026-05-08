@@ -6,13 +6,13 @@ from typing import TYPE_CHECKING
 from discord.ext import commands
 
 if TYPE_CHECKING:
-    from ..bot import PiBot
+    from ..bot import SirrMizan
 
 
 class BaseCog(commands.Cog):
     """Holds a typed reference to the bot and exposes per-cog helpers."""
 
-    def __init__(self, bot: "PiBot") -> None:
+    def __init__(self, bot: "SirrMizan") -> None:
         self.bot = bot
 
     def _lang(self, ctx: commands.Context) -> str:

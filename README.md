@@ -29,7 +29,7 @@ commands. Built on [Py-Cord](https://docs.pycord.dev/).
 ## Project layout
 
 ```
-pi_bot/
+sirrmizan/
 ├── __main__.py        — entry point, lifecycle wiring
 ├── bot.py             — bot subclass, setup_hook, error handler, save loop
 ├── config.py          — env-driven config (with legacy config.json fallback)

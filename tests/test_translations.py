@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import pytest
 
-from pi_bot.translations import DEFAULT_LANGUAGE, SUPPORTED_LANGUAGES, get, t
+from sirrmizan.translations import DEFAULT_LANGUAGE, SUPPORTED_LANGUAGES, get, t
 
 
 class TestGet:

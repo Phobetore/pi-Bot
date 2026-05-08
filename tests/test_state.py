@@ -6,8 +6,8 @@ from pathlib import Path
 
 import pytest
 
-from pi_bot.colors import CANONICAL_COLORS, DEFAULT_COLOR
-from pi_bot.state import State, is_valid_prefix
+from sirrmizan.colors import CANONICAL_COLORS, DEFAULT_COLOR
+from sirrmizan.state import State, is_valid_prefix
 
 
 class TestPrefixValidation:

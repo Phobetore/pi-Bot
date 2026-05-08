@@ -13,7 +13,7 @@ from ..translations import SUPPORTED_LANGUAGES, t
 from ._base import BaseCog
 
 if TYPE_CHECKING:
-    from ..bot import PiBot
+    from ..bot import SirrMizan
 
 logger = logging.getLogger(__name__)
 
@@ -173,5 +173,5 @@ class SettingsCog(BaseCog):
         await ctx.respond(t(lang, "defaultroll_set", expression=normalized))
 
 
-def setup(bot: "PiBot") -> None:
+def setup(bot: "SirrMizan") -> None:
     bot.add_cog(SettingsCog(bot))

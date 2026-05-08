@@ -1,6 +1,6 @@
 ﻿<#
 .SYNOPSIS
-    Restarts pi-Bot. Tolerates a not-currently-running bot (start anyway).
+    Restarts SirrMizan. Tolerates a not-currently-running bot (start anyway).
 #>
 [CmdletBinding()]
 param()
@@ -9,7 +9,7 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
 $ProjectRoot = Split-Path -Parent $PSScriptRoot
-$PidFile = Join-Path $ProjectRoot '.run\pi-bot.pid'
+$PidFile = Join-Path $ProjectRoot '.run\sirrmizan.pid'
 
 if (Test-Path $PidFile) {
     & "$PSScriptRoot\stop.ps1"

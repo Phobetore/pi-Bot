@@ -4,7 +4,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from pi_bot.persistence import read_json, write_json_atomic
+from sirrmizan.persistence import read_json, write_json_atomic
 
 
 def test_read_missing_returns_default(tmp_path: Path) -> None:

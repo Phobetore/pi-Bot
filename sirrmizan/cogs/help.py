@@ -11,7 +11,7 @@ from ..translations import t
 from ._base import BaseCog
 
 if TYPE_CHECKING:
-    from ..bot import PiBot
+    from ..bot import SirrMizan
 
 
 class HelpCog(BaseCog):
@@ -86,5 +86,5 @@ class HelpCog(BaseCog):
         await ctx.respond(embed=self._build_help_embed(lang, prefix), ephemeral=True)
 
 
-def setup(bot: "PiBot") -> None:
+def setup(bot: "SirrMizan") -> None:
     bot.add_cog(HelpCog(bot))

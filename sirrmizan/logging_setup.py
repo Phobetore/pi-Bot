@@ -2,8 +2,8 @@
 
 Two named loggers exist:
 
-* ``pi_bot`` — application logs, written to ``app.log`` and stderr.
-* ``pi_bot.audit`` — security-relevant events, written to ``audit.log`` only
+* ``sirrmizan`` — application logs, written to ``app.log`` and stderr.
+* ``sirrmizan.audit`` — security-relevant events, written to ``audit.log`` only
   (``propagate=False`` so audit entries do not leak into the general log).
 """
 from __future__ import annotations
@@ -29,7 +29,7 @@ def configure_logging(log_dir: Path, level: str = "INFO") -> None:
 
     # Root: only third-party noise. We send our own logs at the configured
     # level via a stderr handler attached here, and they reach it through
-    # propagation from the ``pi_bot`` logger.
+    # propagation from the ``sirrmizan`` logger.
     root = logging.getLogger()
     root.setLevel(logging.WARNING)
     for handler in list(root.handlers):
@@ -40,8 +40,8 @@ def configure_logging(log_dir: Path, level: str = "INFO") -> None:
     stderr_handler.setLevel(level)
     root.addHandler(stderr_handler)
 
-    # ``pi_bot`` logger: own rotating file + propagation to root for stderr.
-    app_logger = logging.getLogger("pi_bot")
+    # ``sirrmizan`` logger: own rotating file + propagation to root for stderr.
+    app_logger = logging.getLogger("sirrmizan")
     app_logger.setLevel(level)
     for handler in list(app_logger.handlers):
         app_logger.removeHandler(handler)
@@ -55,8 +55,8 @@ def configure_logging(log_dir: Path, level: str = "INFO") -> None:
     app_logger.addHandler(app_handler)
     app_logger.propagate = True
 
-    # ``pi_bot.audit``: dedicated file, no propagation.
-    audit_logger = logging.getLogger("pi_bot.audit")
+    # ``sirrmizan.audit``: dedicated file, no propagation.
+    audit_logger = logging.getLogger("sirrmizan.audit")
     audit_logger.setLevel(logging.INFO)
     for handler in list(audit_logger.handlers):
         audit_logger.removeHandler(handler)

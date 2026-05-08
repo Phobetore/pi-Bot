@@ -21,7 +21,7 @@ from .persistence import read_json, write_json_atomic
 from .translations import SUPPORTED_LANGUAGES
 
 logger = logging.getLogger(__name__)
-audit_logger = logging.getLogger("pi_bot.audit")
+audit_logger = logging.getLogger("sirrmizan.audit")
 
 # Visible non-alphanumeric ASCII allowed in prefixes.
 _PREFIX_PATTERN = re.compile(r"^[!?\.,;:/\\~#\$%&\*\+\-=<>\|\^@&]{1,5}$")
