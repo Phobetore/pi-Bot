@@ -20,9 +20,6 @@ logger = logging.getLogger(__name__)
 
 
 class SettingsCog(BaseCog):
-    # ------------------------------------------------------------------
-    # Shared logic
-    # ------------------------------------------------------------------
     async def _do_set_language(self, guild_id: int, lang_input: str) -> tuple[str, bool]:
         normalized = lang_input.lower().strip()
         if normalized not in SUPPORTED_LANGUAGES:
@@ -56,9 +53,6 @@ class SettingsCog(BaseCog):
         await self.bot.state.save()
         return normalized, None
 
-    # ------------------------------------------------------------------
-    # Prefix commands
-    # ------------------------------------------------------------------
     @commands.command(name="setlang")
     @commands.guild_only()
     @commands.has_permissions(manage_guild=True)
@@ -101,9 +95,6 @@ class SettingsCog(BaseCog):
             return
         await ctx.send(t(lang, "defaultroll_set", expression=normalized))
 
-    # ------------------------------------------------------------------
-    # Slash commands
-    # ------------------------------------------------------------------
     @discord.slash_command(name="setlang", description="Set the bot's language for this server")
     @discord.default_permissions(manage_guild=True)
     async def set_language_slash(

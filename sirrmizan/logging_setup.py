@@ -1,10 +1,7 @@
-"""Structured logging setup.
+"""Logging setup.
 
-Two named loggers exist:
-
-* ``sirrmizan`` — application logs, written to ``app.log`` and stderr.
-* ``sirrmizan.audit`` — security-relevant events, written to ``audit.log`` only
-  (``propagate=False`` so audit entries do not leak into the general log).
+``sirrmizan``       → app.log + stderr.
+``sirrmizan.audit`` → audit.log only (propagate=False).
 """
 
 from __future__ import annotations
@@ -20,7 +17,6 @@ _DATEFMT = "%Y-%m-%dT%H:%M:%S%z"
 
 def configure_logging(log_dir: Path, level: str = "INFO") -> None:
     log_dir.mkdir(parents=True, exist_ok=True)
-    # Defensive: tighten directory permissions on POSIX (no-op on Windows).
     try:
         os.chmod(log_dir, 0o700)
     except OSError:
@@ -28,9 +24,6 @@ def configure_logging(log_dir: Path, level: str = "INFO") -> None:
 
     formatter = logging.Formatter(_FORMAT, datefmt=_DATEFMT)
 
-    # Root: only third-party noise. We send our own logs at the configured
-    # level via a stderr handler attached here, and they reach it through
-    # propagation from the ``sirrmizan`` logger.
     root = logging.getLogger()
     root.setLevel(logging.WARNING)
     for handler in list(root.handlers):
@@ -41,7 +34,6 @@ def configure_logging(log_dir: Path, level: str = "INFO") -> None:
     stderr_handler.setLevel(level)
     root.addHandler(stderr_handler)
 
-    # ``sirrmizan`` logger: own rotating file + propagation to root for stderr.
     app_logger = logging.getLogger("sirrmizan")
     app_logger.setLevel(level)
     for handler in list(app_logger.handlers):
@@ -56,7 +48,6 @@ def configure_logging(log_dir: Path, level: str = "INFO") -> None:
     app_logger.addHandler(app_handler)
     app_logger.propagate = True
 
-    # ``sirrmizan.audit``: dedicated file, no propagation.
     audit_logger = logging.getLogger("sirrmizan.audit")
     audit_logger.setLevel(logging.INFO)
     for handler in list(audit_logger.handlers):

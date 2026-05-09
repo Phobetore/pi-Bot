@@ -1,13 +1,4 @@
-"""In-memory state with persistent JSON storage.
-
-All mutating operations acquire the same ``asyncio.Lock`` and set a dirty flag.
-Persistence is performed by ``save()``, which writes each JSON file atomically
-and clears the dirty flag. The bot's periodic save loop calls ``save()`` only
-when ``is_dirty`` is true, avoiding spurious writes.
-
-The state is intentionally narrow: three JSON files plus a few helpers. For
-larger needs, migrate to SQLite (the API surface here is small enough to swap).
-"""
+"""In-memory state, persisted as three JSON files."""
 
 from __future__ import annotations
 
@@ -48,9 +39,6 @@ class State:
         self._user_stats: dict[str, dict[str, int]] = {}
         self._server_prefs: dict[str, dict[str, Any]] = {}
 
-    # ------------------------------------------------------------------
-    # Lifecycle
-    # ------------------------------------------------------------------
     def load(self) -> None:
         """Synchronously load state from disk, sanitize, and migrate."""
         users = read_json(self._users_path, {"users": {}})
@@ -66,13 +54,7 @@ class State:
         self._migrate()
 
     def _sanitize(self) -> None:
-        """Drop or repair on-disk values that do not match the expected schema.
-
-        Anything that survives passes through to the rest of the module without
-        further isinstance checks. Marks dirty so repairs are persisted on the
-        next save.
-        """
-        # ── user_preferences: {"users": {<id_str>: {"color": str, "compact": bool}}}
+        """Drop on-disk values that don't match the expected schema."""
         raw_users = self._user_preferences.get("users")
         if not isinstance(raw_users, dict):
             self._user_preferences = {"users": {}}
@@ -88,24 +70,21 @@ class State:
                 if isinstance(color, str):
                     clean["color"] = color
                 compact = prefs.get("compact")
-                # bool is subclass of int — be strict.
                 if isinstance(compact, bool):
                     clean["compact"] = compact
                 elif "compact" in prefs:
-                    self._dirty = True  # wrong type
+                    self._dirty = True
                 cleaned_users[uid] = clean
             if cleaned_users != raw_users:
                 self._dirty = True
             self._user_preferences["users"] = cleaned_users
 
-        # ── user_stats: {<id_str>: {"dice_rolls_count": <int>}}
         cleaned_stats: dict[str, dict[str, int]] = {}
         for uid, entry in self._user_stats.items():
             if not (isinstance(uid, str) and isinstance(entry, dict)):
                 self._dirty = True
                 continue
             count = entry.get("dice_rolls_count", 0)
-            # bool is a subclass of int — exclude it explicitly.
             if not isinstance(count, int) or isinstance(count, bool) or count < 0:
                 count = 0
                 self._dirty = True
@@ -114,7 +93,6 @@ class State:
             self._dirty = True
         self._user_stats = cleaned_stats
 
-        # ── server_prefs: {<id_str>: {prefix?, language?, default_roll?}}
         cleaned_servers: dict[str, dict[str, Any]] = {}
         for gid, entry in self._server_prefs.items():
             if not (isinstance(gid, str) and isinstance(entry, dict)):
@@ -126,14 +104,13 @@ class State:
                 if isinstance(value, str):
                     clean_server[key] = value
                 elif key in entry:
-                    self._dirty = True  # field present but wrong type
+                    self._dirty = True
             cleaned_servers[gid] = clean_server
         if cleaned_servers != self._server_prefs:
             self._dirty = True
         self._server_prefs = cleaned_servers
 
     def _migrate(self) -> None:
-        """Forward-only data migrations. Marks dirty if anything changes."""
         users = self._user_preferences.get("users", {})
         for prefs in users.values():
             color = prefs.get("color")
@@ -146,7 +123,6 @@ class State:
                     prefs["color"] = colors.DEFAULT_COLOR
                     self._dirty = True
 
-        # Drop legacy `colors` mapping that used to live inside the file.
         if "colors" in self._user_preferences:
             self._user_preferences.pop("colors", None)
             self._dirty = True
@@ -169,9 +145,6 @@ class State:
         write_json_atomic(self._servers_path, self._server_prefs)
         self._dirty = False
 
-    # ------------------------------------------------------------------
-    # User preferences
-    # ------------------------------------------------------------------
     def get_user_color_name(self, user_id: int) -> str:
         users = self._user_preferences.get("users", {})
         prefs = users.get(str(user_id), {})
@@ -210,9 +183,6 @@ class State:
             users.setdefault(str(user_id), {})["compact"] = bool(compact)
             self._dirty = True
 
-    # ------------------------------------------------------------------
-    # User stats
-    # ------------------------------------------------------------------
     def get_user_dice_count(self, user_id: int) -> int:
         entry = self._user_stats.get(str(user_id), {})
         if not isinstance(entry, dict):
@@ -226,9 +196,6 @@ class State:
             entry["dice_rolls_count"] = entry.get("dice_rolls_count", 0) + 1
             self._dirty = True
 
-    # ------------------------------------------------------------------
-    # Server preferences
-    # ------------------------------------------------------------------
     def get_server_prefix(self, guild_id: int, default: str) -> str:
         entry = self._server_prefs.get(str(guild_id), {})
         if isinstance(entry, dict):

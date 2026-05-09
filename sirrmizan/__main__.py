@@ -18,10 +18,7 @@ logger = logging.getLogger(__name__)
 
 
 async def _run_with_signals(bot: SirrMizan) -> None:
-    """Install POSIX signal handlers so SIGTERM/SIGINT trigger a clean
-    shutdown that flushes state. On Windows ``loop.add_signal_handler`` is
-    not supported and we rely on Ctrl-C → KeyboardInterrupt instead.
-    """
+    """Run the bot, flushing state cleanly on SIGINT/SIGTERM (POSIX only)."""
     loop = asyncio.get_running_loop()
     stop = asyncio.Event()
 
@@ -33,8 +30,7 @@ async def _run_with_signals(bot: SirrMizan) -> None:
         try:
             loop.add_signal_handler(getattr(signal, signame), _request_stop, signame)
         except (NotImplementedError, AttributeError):
-            # Windows or non-main thread — Python's default handlers cover us.
-            pass
+            pass  # not supported on Windows
 
     bot_task = asyncio.create_task(bot.run_lifecycle(), name="sirrmizan-main")
     stop_task = asyncio.create_task(stop.wait(), name="sirrmizan-stop-signal")

@@ -48,11 +48,6 @@ class SirrMizan(commands.Bot):
         self.state = state
         self._save_task: asyncio.Task[None] | None = None
 
-        # Load every cog right at construction time. This works across
-        # py-cord versions because ``load_extension`` is synchronous and
-        # ``add_cog`` does not require a running event loop. Doing it here
-        # avoids relying on ``setup_hook``, which behaves differently across
-        # forks and versions.
         for extension in _discover_extensions():
             try:
                 self.load_extension(extension)
@@ -61,17 +56,11 @@ class SirrMizan(commands.Bot):
                 raise
             logger.info("Loaded extension %s", extension)
 
-    # ------------------------------------------------------------------
-    # Prefix resolution
-    # ------------------------------------------------------------------
     def _resolve_prefix(self, _bot: commands.Bot, message: discord.Message) -> str:
         if message.guild is None:
             return self.config.default_prefix
         return self.state.get_server_prefix(message.guild.id, self.config.default_prefix)
 
-    # ------------------------------------------------------------------
-    # Lifecycle
-    # ------------------------------------------------------------------
     async def on_ready(self) -> None:
         user = self.user
         logger.info(
@@ -79,19 +68,17 @@ class SirrMizan(commands.Bot):
             user,
             user.id if user is not None else "?",
         )
-        # ``on_ready`` may fire more than once on reconnect; guard against
-        # spawning duplicate save tasks.
+        # on_ready can fire more than once on reconnect.
         if self._save_task is None or self._save_task.done():
             self._save_task = asyncio.create_task(self._save_loop(), name="sirrmizan-saver")
             self._save_task.add_done_callback(self._save_task_finished)
 
     def _save_task_finished(self, task: asyncio.Task[None]) -> None:
-        """Log if the save loop ended unexpectedly so we don't lose state silently."""
         if task.cancelled():
             return
         exc = task.exception()
         if exc is not None:
-            logger.error("save loop crashed: %r — periodic saves are stopped", exc)
+            logger.error("save loop crashed: %r — periodic saves stopped", exc)
 
     async def on_command_error(self, ctx: commands.Context, error: Exception) -> None:
         lang = self.state.get_server_language(ctx.guild.id if ctx.guild else None)
@@ -138,9 +125,6 @@ class SirrMizan(commands.Bot):
             logger.exception("Final save failed")
         await super().close()
 
-    # ------------------------------------------------------------------
-    # Periodic saver
-    # ------------------------------------------------------------------
     async def _save_loop(self) -> None:
         interval = self.config.save_interval
         while True:
@@ -154,9 +138,6 @@ class SirrMizan(commands.Bot):
                 except Exception:
                     logger.exception("Periodic save failed")
 
-    # ------------------------------------------------------------------
-    # Entry point used by ``__main__``
-    # ------------------------------------------------------------------
     async def run_lifecycle(self) -> None:
         try:
             await self.start(self.config.token)

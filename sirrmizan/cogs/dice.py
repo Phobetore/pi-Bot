@@ -21,32 +21,18 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 audit_logger = logging.getLogger("sirrmizan.audit")
 
-# SystemRandom is seeded from the OS entropy pool — appropriate when fairness
-# matters to users.
 _RNG = secrets.SystemRandom()
 
 _HIGH_ROLL_THRESHOLD = 999
-# A leading digit (with optional sign) means the user almost certainly meant
-# a dice expression. When parsing fails on such input, we surface the parse
-# error rather than silently treating the input as a target name.
 _LOOKS_LIKE_DICE_ATTEMPT = re.compile(r"^[+-]?\d")
 
 
 class DiceCog(BaseCog):
-    # ------------------------------------------------------------------
-    # Helpers
-    # ------------------------------------------------------------------
     def _author_color(self, user_id: int) -> discord.Color:
         return discord.Color(self.bot.state.get_user_color_hex(user_id))
 
     def _roll_dice(self, expr: ParsedExpression) -> tuple[int, list[tuple[str, list[int]]]]:
-        """Roll the dice from ``expr``.
-
-        Returns ``(total, term_results)`` where ``term_results`` is a list of
-        ``(label, signed_results)`` pairs — one entry per dice term, in order.
-        ``label`` is e.g. ``"1d20"`` or ``"-2d6"``; ``signed_results`` are the
-        individual rolls already multiplied by the sign.
-        """
+        """Roll ``expr`` and return (total, [(label, signed_results), ...])."""
         dice_total = 0
         terms: list[tuple[str, list[int]]] = []
         for part in expr.dice:
@@ -85,7 +71,6 @@ class DiceCog(BaseCog):
         target_name: str | None,
         lang: str,
     ) -> discord.Embed:
-        # Title carries the total — it's what players want to see first.
         embed = discord.Embed(
             title=f"🎲 {total}",
             color=self._author_color(author.id),
@@ -98,8 +83,7 @@ class DiceCog(BaseCog):
         if desc_parts:
             embed.description = " ".join(desc_parts)
 
-        # Dice breakdown — only meaningful when there's something beyond a
-        # single die with no modifier (in that case the title alone suffices).
+        # Skip the breakdown for a plain "1d20" — the title already shows it.
         single_die_no_mod = len(terms) == 1 and len(terms[0][1]) == 1 and not modifiers
         if terms and not single_die_no_mod:
             lines = [self._format_dice_term(label, signed) for label, signed in terms]
@@ -161,9 +145,6 @@ class DiceCog(BaseCog):
             return f"{head}  ({', '.join(breakdown_parts)})"
         return head
 
-    # ------------------------------------------------------------------
-    # Core logic shared between prefix and slash commands
-    # ------------------------------------------------------------------
     async def _resolve_roll(
         self,
         raw: str,
@@ -249,9 +230,6 @@ class DiceCog(BaseCog):
                 )
             )
 
-    # ------------------------------------------------------------------
-    # Prefix commands
-    # ------------------------------------------------------------------
     @commands.command(name="roll", aliases=["r"])
     @commands.cooldown(1, 1, commands.BucketType.user)
     @commands.max_concurrency(1, per=commands.BucketType.user, wait=False)
@@ -295,7 +273,7 @@ class DiceCog(BaseCog):
             lang=lang,
         )
 
-        # Best-effort cleanup of the invocation message.
+        # Try to delete the invocation message; ignore if no permission.
         if ctx.guild is not None:
             try:
                 await ctx.message.delete()
@@ -353,9 +331,6 @@ class DiceCog(BaseCog):
         else:
             await ctx.send(t(lang, "rollshort_invalid", prefix=prefix))
 
-    # ------------------------------------------------------------------
-    # Slash commands
-    # ------------------------------------------------------------------
     @discord.slash_command(name="roll", description="Roll dice with an expression like 2d6+3")
     async def roll_slash(
         self,

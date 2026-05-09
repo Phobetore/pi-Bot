@@ -1,19 +1,15 @@
-"""Strict dice expression parser.
+"""Dice expression parser.
 
-Grammar (informal):
+Grammar:
 
     expression  := term (sign term)*
     term        := signed_dice | signed_int
     signed_dice := [+-]? UINT 'd' UINT
     signed_int  := [+-]? UINT
 
-The parser consumes the whole input — any garbage character produces
-``DiceParseError``. Numerical limits prevent abuse (``50`` rolls per term,
-faces capped at ``99999``). The expression itself is capped at 100 characters.
-
-This module also exposes :func:`parse_roll_input`, a higher-level helper that
-splits free-form ``!roll`` arguments into an expression and an optional target
-name, tolerating arbitrary whitespace inside and around operators.
+``parse_roll_input`` is the higher-level wrapper for !roll — splits
+free-form input into expression + optional target name and tolerates
+spaces around operators.
 """
 
 from __future__ import annotations
@@ -90,8 +86,8 @@ def parse(expression: str) -> ParsedExpression:
         if match is None or match.start() != pos:
             raise DiceParseError(f"unexpected character {expression[pos]!r} at position {pos}")
 
-        # All non-leading tokens must start with an explicit sign — otherwise
-        # ``2d63d6`` would parse as 2d6 then 3d6 silently.
+        # Non-leading tokens require an explicit sign; otherwise "2d63d6"
+        # would split into 2d6 + 3d6.
         token_text = match.group(0)
         if not first_token and token_text[0] not in "+-":
             raise DiceParseError(f"missing sign before token {token_text!r} at position {pos}")
@@ -127,19 +123,8 @@ def parse(expression: str) -> ParsedExpression:
     return ParsedExpression(dice=tuple(dice), modifiers=tuple(modifiers))
 
 
-# ---------------------------------------------------------------------------
-# Free-form input splitter
-# ---------------------------------------------------------------------------
-
-
 def _split_trailing_ops(tokens: list[str]) -> list[str]:
-    """Split off trailing ``+``/``-`` characters from compound tokens.
-
-    ``['1d20+', 'Goblin']`` → ``['1d20', '+', 'Goblin']``.
-    ``['1d20++']``          → ``['1d20', '+', '+']``.
-
-    Tokens that ARE just an operator (``+``, ``-``) are left alone.
-    """
+    """Split trailing +/- off compound tokens: ['1d20+', 'x'] -> ['1d20', '+', 'x']."""
     out: list[str] = []
     for tok in tokens:
         trailing: list[str] = []
@@ -152,18 +137,7 @@ def _split_trailing_ops(tokens: list[str]) -> list[str]:
 
 
 def _normalize_tokens(tokens: list[str]) -> list[str]:
-    """Pre-process a token list to make space-tolerant joining unambiguous.
-
-    Two passes:
-
-    1. Trailing-operator split — ``1d20+`` becomes ``1d20`` then ``+``.
-    2. Lone-operator handling:
-       - Followed by a numeric token: glue them (``+``, ``5`` → ``+5``).
-       - Followed by another sign token: drop the lone operator as redundant
-         (``+ +5`` → ``+5``).
-       - Otherwise: leave the lone operator in place; later steps will strip
-         it from the target name if it ends up there.
-    """
+    """Glue lone +/- onto the next numeric token, drop redundant sign pairs."""
     tokens = _split_trailing_ops(tokens)
     out: list[str] = []
     i = 0
@@ -176,8 +150,6 @@ def _normalize_tokens(tokens: list[str]) -> list[str]:
                 i += 2
                 continue
             if next_tok and next_tok[0] in "+-":
-                # The next token already carries its own sign; this lone
-                # operator is redundant garbage.
                 i += 1
                 continue
         out.append(tok)
@@ -186,10 +158,9 @@ def _normalize_tokens(tokens: list[str]) -> list[str]:
 
 
 def _join_expression_tokens(tokens: list[str]) -> str:
-    """Concatenate tokens, prefixing unsigned non-leading tokens with ``+``.
+    """Join with a synthetic '+' between unsigned non-leading tokens.
 
-    Without this, ``+5`` followed by ``1d20`` would be glued as ``+51d20``
-    (51 rolls of d20) instead of ``+5+1d20``.
+    Without this, "+5" followed by "1d20" would collapse into "+51d20".
     """
     if not tokens:
         return ""
@@ -206,15 +177,8 @@ def parse_roll_input(
 ) -> tuple[ParsedExpression | None, str, str | None]:
     """Split free-form roll input into (expression, expression_str, target).
 
-    Walks tokens left-to-right, picking the longest prefix whose joined form
-    parses as a valid expression. The remaining tokens are joined with a
-    single space to form the target name. Whitespace around operators is
-    tolerated (``2d6 + 5 Goblin`` works the same as ``2d6+5 Goblin``).
-
-    Returns:
-        ``(parsed, joined_str, target)``. ``parsed`` is ``None`` if no leading
-        tokens form a valid expression — in that case, ``joined_str`` is empty
-        and the entire (normalized) input is the target.
+    Picks the longest leading run of tokens that parses as an expression;
+    the rest is the target name.
     """
     raw = (raw or "").strip()
     if not raw:
@@ -228,7 +192,6 @@ def parse_roll_input(
     longest_expr: ParsedExpression | None = None
     longest_str = ""
 
-    # Greedy: try every prefix length and remember the longest one that parses.
     for k in range(1, len(tokens) + 1):
         candidate = _join_expression_tokens(tokens[:k])
         try:
@@ -239,9 +202,6 @@ def parse_roll_input(
         longest_expr = parsed
         longest_str = candidate
 
-    # Discard any leading or trailing lone +/- tokens from the target — they
-    # are leftover operators that didn't bind to a numeric token (e.g. user
-    # typed ``1d20 + Goblin`` or ``1d20 Goblin +``).
     target_words = list(tokens[longest_k:])
     while target_words and target_words[0] in ("+", "-"):
         target_words.pop(0)
