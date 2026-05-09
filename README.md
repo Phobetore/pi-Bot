@@ -84,6 +84,12 @@ rename):
 pytest
 ```
 
+## More
+
+- [`CHANGELOG.md`](CHANGELOG.md) — version history.
+- [`docs/runbook.md`](docs/runbook.md) — what to do when something breaks.
+- [`docs/rebuild.md`](docs/rebuild.md) — rebuild the VPS from scratch.
+
 ## License
 
 MIT.
