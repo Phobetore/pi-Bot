@@ -1,17 +1,13 @@
 name: Deploy to production
 
 on:
-  workflow_run:
-    workflows: ["CI"]
+  push:
     branches: [prod]
-    types: [completed]
   workflow_dispatch:
 
 permissions:
   contents: read
 
-# Only one deploy at a time. Queued (not cancelled) so a fast follow-up
-# commit waits for the previous deploy to finish.
 concurrency:
   group: deploy-prod
   cancel-in-progress: false
@@ -20,31 +16,12 @@ jobs:
   deploy:
     name: Deploy to VPS
     runs-on: ubuntu-latest
-    # The "production" environment can carry required reviewers, secrets,
-    # and a deployment-branches restriction. See branch-protection notes
-    # in the README.
+    if: github.ref == 'refs/heads/prod'
     environment:
       name: production
       url: https://github.com/${{ github.repository }}
-    # Only deploy from the prod branch. workflow_dispatch is also gated to
-    # prod so accidentally clicking "Run workflow" from another branch is
-    # a no-op (the environment also enforces this, this is belt-and-braces).
-    if: >
-      (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/prod') ||
-      (github.event_name == 'workflow_run' &&
-       github.event.workflow_run.conclusion == 'success' &&
-       github.event.workflow_run.head_branch == 'prod')
 
     steps:
-      - name: Resolve commit being deployed
-        id: commit
-        run: |
-          if [ "${{ github.event_name }}" = "workflow_run" ]; then
-            echo "sha=${{ github.event.workflow_run.head_sha }}" >> "$GITHUB_OUTPUT"
-          else
-            echo "sha=${{ github.sha }}" >> "$GITHUB_OUTPUT"
-          fi
-
       - name: Configure SSH
         env:
           DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
@@ -62,8 +39,6 @@ jobs:
           DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
           DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
         run: |
-          # The forced-command in authorized_keys runs ci_deploy.sh and
-          # ignores anything we'd pass; we just open the connection.
           ssh -i ~/.ssh/deploy_key \
               -o BatchMode=yes \
               -o StrictHostKeyChecking=yes \
@@ -72,5 +47,5 @@ jobs:
 
       - name: Summary
         run: |
-          echo "### Deployed \`${{ steps.commit.outputs.sha }}\` to production" \
+          echo "### Deployed \`${{ github.sha }}\` to production" \
             >> "$GITHUB_STEP_SUMMARY"
