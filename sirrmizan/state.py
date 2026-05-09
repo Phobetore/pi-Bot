@@ -136,8 +136,11 @@ class State:
         return self._dirty
 
     async def save(self) -> None:
+        # Run the synchronous fsync-heavy work in a worker thread so a slow
+        # disk does not block the event loop and starve the Discord gateway
+        # heartbeat task.
         async with self._lock:
-            self._save_unlocked()
+            await asyncio.get_running_loop().run_in_executor(None, self._save_unlocked)
 
     def _save_unlocked(self) -> None:
         write_json_atomic(self._users_path, self._user_preferences)
