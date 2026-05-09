@@ -6,11 +6,21 @@ adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Fixed
+
+- Removed the `_GatewayHealthcheck` handler that triggered `os._exit(1)`
+  on any "heartbeat blocked > 60s" line from `discord.gateway`. In
+  practice this fired on routine network/gateway hiccups that py-cord
+  recovers from on its own — causing 549 systemd-driven restarts in
+  3 days on prod. The cron watchdog (now 1min cadence + 90s stale
+  threshold) covers the real-stuck case at the OS level, so the
+  app-level hook was both redundant and far too trigger-happy.
+
 ### Changed
 
 - Tightened watchdog cadence: bot heartbeat 60s→30s (write-then-sleep so
   a fresh boot is detected immediately), cron check 5min→1min, stale
-  threshold 5min→90s. Removes the gateway-stuck blind spot below 5 min.
+  threshold 5min→90s.
 
 ## [1.1.0] — 2026-05-09
 
