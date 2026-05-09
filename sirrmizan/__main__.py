@@ -46,11 +46,14 @@ async def _run_with_signals(bot: SirrMizan) -> None:
         )
         if stop_task in done and not bot_task.done():
             await bot.close()
-            with asyncio.timeout(30):
-                try:
-                    await bot_task
-                except asyncio.CancelledError:
-                    pass
+            try:
+                async with asyncio.timeout(30):
+                    try:
+                        await bot_task
+                    except asyncio.CancelledError:
+                        pass
+            except TimeoutError:
+                logger.warning("bot did not exit within 30s; forcing")
         # Surface any exception raised by the bot lifecycle.
         if bot_task.done():
             bot_task.result()
