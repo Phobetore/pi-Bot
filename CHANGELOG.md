@@ -6,6 +6,8 @@ adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [1.1.1] — 2026-05-09
+
 ### Fixed
 
 - Removed the `_GatewayHealthcheck` handler that triggered `os._exit(1)`
@@ -60,5 +62,6 @@ and runs in production with a full CI/CD pipeline.
 - ufw firewall (port 22 only, rate-limited) + fail2ban.
 - Auto-reboot at 04:00 when kernel patches are pending.
 
-[Unreleased]: https://github.com/Phobetore/pi-Bot/compare/v1.1.0...HEAD
+[Unreleased]: https://github.com/Phobetore/pi-Bot/compare/v1.1.1...HEAD
+[1.1.1]: https://github.com/Phobetore/pi-Bot/compare/v1.1.0...v1.1.1
 [1.1.0]: https://github.com/Phobetore/pi-Bot/releases/tag/v1.1.0
