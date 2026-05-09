@@ -268,7 +268,7 @@ class DiceCog(BaseCog):
     # Prefix commands
     # ------------------------------------------------------------------
     @commands.command(name="roll", aliases=["r"])
-    @commands.cooldown(1, 3, commands.BucketType.user)
+    @commands.cooldown(1, 1, commands.BucketType.user)
     @commands.max_concurrency(1, per=commands.BucketType.user, wait=False)
     async def roll(
         self, ctx: commands.Context, *, args: Optional[str] = None
@@ -394,7 +394,7 @@ class DiceCog(BaseCog):
             default=None,
         ),
     ) -> None:
-        if not await self._slash_cooldown(ctx, "roll"):
+        if not await self._slash_cooldown(ctx, "roll", 1.0):
             return
         lang = self.bot.state.get_server_language(
             ctx.guild_id if ctx.guild_id else None
