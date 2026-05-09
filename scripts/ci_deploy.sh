@@ -28,7 +28,7 @@ echo "[deploy] updating: $CURRENT -> $TARGET"
 git reset --hard origin/prod
 
 echo "[deploy] installing deps..."
-.venv/bin/pip install -r requirements.txt --quiet --upgrade
+.venv/bin/pip install --require-hashes -r requirements.txt --quiet
 
 echo "[deploy] sanity-check import..."
 .venv/bin/python -c 'import sirrmizan; print("  module OK, version=" + sirrmizan.__version__)'
@@ -38,10 +38,10 @@ sudo /usr/bin/systemctl restart discordbot
 
 sleep 5
 
-if sudo /usr/bin/systemctl is-active --quiet discordbot; then
+if sudo /usr/bin/systemctl is-active discordbot >/dev/null 2>&1; then
     echo "[deploy] success — running $TARGET"
 else
     echo "[deploy] FAILURE — service is not active" >&2
-    sudo /usr/bin/systemctl status discordbot --no-pager >&2
+    sudo /usr/bin/systemctl status discordbot >&2 || true
     exit 1
 fi

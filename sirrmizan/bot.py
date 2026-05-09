@@ -4,7 +4,9 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import math
 import pkgutil
+import time
 
 import discord
 from discord.ext import commands
@@ -47,6 +49,7 @@ class SirrMizan(commands.Bot):
         self.config = config
         self.state = state
         self._save_task: asyncio.Task[None] | None = None
+        self._heartbeat_task: asyncio.Task[None] | None = None
 
         for extension in _discover_extensions():
             try:
@@ -72,6 +75,10 @@ class SirrMizan(commands.Bot):
         if self._save_task is None or self._save_task.done():
             self._save_task = asyncio.create_task(self._save_loop(), name="sirrmizan-saver")
             self._save_task.add_done_callback(self._save_task_finished)
+        if self._heartbeat_task is None or self._heartbeat_task.done():
+            self._heartbeat_task = asyncio.create_task(
+                self._heartbeat_loop(), name="sirrmizan-heartbeat"
+            )
 
     def _save_task_finished(self, task: asyncio.Task[None]) -> None:
         if task.cancelled():
@@ -79,6 +86,24 @@ class SirrMizan(commands.Bot):
         exc = task.exception()
         if exc is not None:
             logger.error("save loop crashed: %r — periodic saves stopped", exc)
+
+    async def _heartbeat_loop(self) -> None:
+        """Touch a file every minute so an external watchdog can detect a stuck bot."""
+        heartbeat_file = self.config.data_dir / "heartbeat"
+        while True:
+            try:
+                await asyncio.sleep(60)
+            except asyncio.CancelledError:
+                return
+            if not self.is_ready():
+                continue
+            latency = self.latency
+            if latency is None or math.isnan(latency):
+                continue
+            try:
+                heartbeat_file.write_text(str(int(time.time())))
+            except OSError:
+                logger.exception("heartbeat write failed")
 
     async def on_command_error(self, ctx: commands.Context, error: Exception) -> None:
         lang = self.state.get_server_language(ctx.guild.id if ctx.guild else None)
@@ -112,13 +137,15 @@ class SirrMizan(commands.Bot):
         await ctx.send(t(lang, "unexpected_error"))
 
     async def close(self) -> None:
-        if self._save_task is not None:
-            self._save_task.cancel()
-            try:
-                await self._save_task
-            except asyncio.CancelledError:
-                pass
-            self._save_task = None
+        for task_attr in ("_save_task", "_heartbeat_task"):
+            task = getattr(self, task_attr, None)
+            if task is not None:
+                task.cancel()
+                try:
+                    await task
+                except asyncio.CancelledError:
+                    pass
+                setattr(self, task_attr, None)
         try:
             await self.state.save()
         except Exception:
