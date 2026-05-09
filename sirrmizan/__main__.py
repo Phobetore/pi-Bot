@@ -27,6 +27,7 @@ async def _run_with_signals(bot: SirrMizan) -> None:
     """
     loop = asyncio.get_running_loop()
     closing = False
+    shutdown_task: asyncio.Task[None] | None = None
 
     async def _shutdown() -> None:
         nonlocal closing
@@ -42,8 +43,10 @@ async def _run_with_signals(bot: SirrMizan) -> None:
             logger.exception("error during bot.close()")
 
     def _request_stop(signame: str) -> None:
+        nonlocal shutdown_task
         logger.info("Received %s — shutting down", signame)
-        loop.create_task(_shutdown(), name="sirrmizan-shutdown")
+        # Hold a reference so the task isn't garbage-collected mid-flight.
+        shutdown_task = loop.create_task(_shutdown(), name="sirrmizan-shutdown")
 
     for signame in ("SIGINT", "SIGTERM"):
         try:
