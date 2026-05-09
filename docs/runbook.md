@@ -11,7 +11,7 @@ What to do when something goes sideways. Each section starts with
    ```
    ssh root@vps.example.com 'systemctl is-active discordbot'
    ```
-2. Check the heartbeat file is fresh (mtime should be < 60s ago):
+2. Check the heartbeat file is fresh (mtime should be < 30s ago):
    ```
    ssh root@vps.example.com 'stat /home/botdiscord/SirrMizan/data/heartbeat'
    ```
@@ -191,5 +191,5 @@ ssh root@vps.example.com 'systemctl stop discordbot && crontab -l | grep -v sirr
 
 To re-enable:
 ```
-ssh root@vps.example.com 'systemctl start discordbot && ( crontab -l ; echo "*/5 * * * * /usr/local/bin/sirrmizan-heartbeat-check.sh" ) | crontab -'
+ssh root@vps.example.com 'systemctl start discordbot && ( crontab -l ; echo "* * * * * /usr/local/bin/sirrmizan-heartbeat-check.sh" ) | crontab -'
 ```

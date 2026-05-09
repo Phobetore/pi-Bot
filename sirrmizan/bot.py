@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import asyncio
 import logging
-import math
 import pkgutil
 import time
 
@@ -88,22 +87,22 @@ class SirrMizan(commands.Bot):
             logger.error("save loop crashed: %r — periodic saves stopped", exc)
 
     async def _heartbeat_loop(self) -> None:
-        """Touch a file every minute so an external watchdog can detect a stuck bot."""
+        """Touch a file every 30s so an external watchdog can detect a stuck bot.
+
+        The gateway-blocked detection lives in ``logging_setup.py``; this loop
+        only signals "the asyncio loop is alive enough to write a small file".
+        """
         heartbeat_file = self.config.data_dir / "heartbeat"
         while True:
+            if self.is_ready():
+                try:
+                    heartbeat_file.write_text(str(int(time.time())))
+                except OSError:
+                    logger.exception("heartbeat write failed")
             try:
-                await asyncio.sleep(60)
+                await asyncio.sleep(30)
             except asyncio.CancelledError:
                 return
-            if not self.is_ready():
-                continue
-            latency = self.latency
-            if latency is None or math.isnan(latency):
-                continue
-            try:
-                heartbeat_file.write_text(str(int(time.time())))
-            except OSError:
-                logger.exception("heartbeat write failed")
 
     async def on_command_error(self, ctx: commands.Context, error: Exception) -> None:
         lang = self.state.get_server_language(ctx.guild.id if ctx.guild else None)
