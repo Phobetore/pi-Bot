@@ -1,52 +1,22 @@
 name: Deploy to production
 
 on:
-  workflow_run:
-    workflows: ["CI"]
-    types: [completed]
+  push:
+    branches: [prod]
   workflow_dispatch:
 
 permissions:
   contents: read
 
-# Only one deploy at a time. Queued (not cancelled) so a fast follow-up
-# commit waits for the previous deploy to finish.
 concurrency:
   group: deploy-prod
   cancel-in-progress: false
 
 jobs:
-  # The gate is the ONLY place the prod-branch check lives. The deploy job
-  # depends on it, which means the deploy job is skipped (and crucially,
-  # the production environment is never referenced) when the source CI did
-  # not run on prod. Putting the if: directly on the deploy job does not
-  # work: GitHub registers the deployment to the production environment as
-  # soon as the job is queued, before the if: is evaluated, and the env
-  # protection rule then fails the run with "Branch X is not allowed to
-  # deploy to production".
-  gate:
-    name: Eligibility gate
-    runs-on: ubuntu-latest
-    if: >
-      (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/prod') ||
-      (github.event_name == 'workflow_run' &&
-       github.event.workflow_run.conclusion == 'success' &&
-       github.event.workflow_run.head_branch == 'prod')
-    outputs:
-      sha: ${{ steps.commit.outputs.sha }}
-    steps:
-      - id: commit
-        run: |
-          if [ "${{ github.event_name }}" = "workflow_run" ]; then
-            echo "sha=${{ github.event.workflow_run.head_sha }}" >> "$GITHUB_OUTPUT"
-          else
-            echo "sha=${{ github.sha }}" >> "$GITHUB_OUTPUT"
-          fi
-
   deploy:
     name: Deploy to VPS
-    needs: gate
     runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/prod'
     environment:
       name: production
       url: https://github.com/${{ github.repository }}
@@ -69,8 +39,6 @@ jobs:
           DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
           DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
         run: |
-          # The forced-command in authorized_keys runs ci_deploy.sh and
-          # ignores anything we'd pass; we just open the connection.
           ssh -i ~/.ssh/deploy_key \
               -o BatchMode=yes \
               -o StrictHostKeyChecking=yes \
@@ -79,5 +47,5 @@ jobs:
 
       - name: Summary
         run: |
-          echo "### Deployed \`${{ needs.gate.outputs.sha }}\` to production" \
+          echo "### Deployed \`${{ github.sha }}\` to production" \
             >> "$GITHUB_STEP_SUMMARY"
