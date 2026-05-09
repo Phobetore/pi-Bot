@@ -3,8 +3,7 @@ from __future__ import annotations
 
 import time
 from collections import defaultdict
-from functools import wraps
-from typing import TYPE_CHECKING, Any, Awaitable, Callable
+from typing import TYPE_CHECKING
 
 import discord
 from discord.ext import commands
@@ -13,6 +12,12 @@ from ..translations import t
 
 if TYPE_CHECKING:
     from ..bot import SirrMizan
+
+
+# Per-(user, command) timestamps for slash-command cooldowns.
+# Module-level state is acceptable: cooldowns reset on bot restart, which is
+# the expected lifecycle for an in-memory rate limit.
+_slash_last_call: dict[tuple[int, str], float] = defaultdict(float)
 
 
 class BaseCog(commands.Cog):
@@ -29,48 +34,34 @@ class BaseCog(commands.Cog):
     def _prefix(self, ctx: commands.Context) -> str:
         return (ctx.clean_prefix or self.bot.config.default_prefix).strip()
 
+    async def _slash_cooldown(
+        self,
+        ctx: discord.ApplicationContext,
+        key: str,
+        seconds: float = 3.0,
+    ) -> bool:
+        """Per-user, per-key rate limit for a slash command.
 
-# ---------------------------------------------------------------------------
-# Cooldowns for slash commands
-# ---------------------------------------------------------------------------
-# ``commands.cooldown`` from discord.ext only applies to prefix commands.
-# For slash commands we track a per-(user, command) timestamp ourselves and
-# respond ephemerally with a localized message when the limit is hit.
+        Returns ``True`` if the call may proceed (and updates the last-call
+        timestamp), ``False`` after responding ephemerally with a localized
+        cooldown message.
 
-_SlashHandler = Callable[..., Awaitable[Any]]
-_last_call: dict[tuple[int, str], float] = defaultdict(float)
-
-
-def slash_cooldown(seconds: float) -> Callable[[_SlashHandler], _SlashHandler]:
-    """Decorator: enforce a per-user, per-command rate limit on a slash handler.
-
-    Must be applied **after** ``@discord.slash_command(...)`` so it wraps the
-    handler before py-cord registers it.
-    """
-
-    def decorator(func: _SlashHandler) -> _SlashHandler:
-        @wraps(func)
-        async def wrapper(
-            self: BaseCog,
-            ctx: discord.ApplicationContext,
-            *args: Any,
-            **kwargs: Any,
-        ) -> Any:
-            key = (ctx.author.id, func.__name__)
-            now = time.monotonic()
-            elapsed = now - _last_call[key]
-            if elapsed < seconds:
-                lang = self.bot.state.get_server_language(
-                    ctx.guild_id if ctx.guild_id else None
-                )
-                await ctx.respond(
-                    t(lang, "command_cooldown", seconds=seconds - elapsed),
-                    ephemeral=True,
-                )
-                return None
-            _last_call[key] = now
-            return await func(self, ctx, *args, **kwargs)
-
-        return wrapper
-
-    return decorator
+        Implemented inline rather than as a decorator because ``functools.wraps``
+        does not copy ``__defaults__``, which py-cord relies on to discover
+        ``discord.Option(...)`` annotations. A wrapping decorator silently
+        breaks option parsing on slash commands that have parameters.
+        """
+        bucket_key = (ctx.author.id, key)
+        now = time.monotonic()
+        elapsed = now - _slash_last_call[bucket_key]
+        if elapsed < seconds:
+            lang = self.bot.state.get_server_language(
+                ctx.guild_id if ctx.guild_id else None
+            )
+            await ctx.respond(
+                t(lang, "command_cooldown", seconds=seconds - elapsed),
+                ephemeral=True,
+            )
+            return False
+        _slash_last_call[bucket_key] = now
+        return True

@@ -10,7 +10,7 @@ from discord.ext import commands
 from ..dice_parser import DiceParseError, parse, parse_roll_input
 from ..state import is_valid_prefix
 from ..translations import SUPPORTED_LANGUAGES, t
-from ._base import BaseCog, slash_cooldown
+from ._base import BaseCog
 
 if TYPE_CHECKING:
     from ..bot import SirrMizan
@@ -111,7 +111,6 @@ class SettingsCog(BaseCog):
         name="setlang", description="Set the bot's language for this server"
     )
     @discord.default_permissions(manage_guild=True)
-    @slash_cooldown(3)
     async def set_language_slash(
         self,
         ctx: discord.ApplicationContext,
@@ -119,6 +118,8 @@ class SettingsCog(BaseCog):
             str, description="Language", choices=sorted(SUPPORTED_LANGUAGES)
         ),
     ) -> None:
+        if not await self._slash_cooldown(ctx, "setlang"):
+            return
         if ctx.guild_id is None:
             await ctx.respond(t("en", "guild_only"), ephemeral=True)
             return
@@ -132,7 +133,6 @@ class SettingsCog(BaseCog):
         name="setprefix", description="Set a custom command prefix for this server"
     )
     @discord.default_permissions(manage_guild=True)
-    @slash_cooldown(3)
     async def set_prefix_slash(
         self,
         ctx: discord.ApplicationContext,
@@ -140,6 +140,8 @@ class SettingsCog(BaseCog):
             str, description="New prefix (1-5 visible non-alphanumeric characters)"
         ),
     ) -> None:
+        if not await self._slash_cooldown(ctx, "setprefix"):
+            return
         if ctx.guild_id is None:
             await ctx.respond(t("en", "guild_only"), ephemeral=True)
             return
@@ -155,7 +157,6 @@ class SettingsCog(BaseCog):
         description="Set the default dice expression for !roll without arguments",
     )
     @discord.default_permissions(manage_guild=True)
-    @slash_cooldown(3)
     async def set_default_roll_slash(
         self,
         ctx: discord.ApplicationContext,
@@ -163,6 +164,8 @@ class SettingsCog(BaseCog):
             str, description="Dice expression (e.g. 1d20)"
         ),
     ) -> None:
+        if not await self._slash_cooldown(ctx, "defaultroll"):
+            return
         if ctx.guild_id is None:
             await ctx.respond(t("en", "guild_only"), ephemeral=True)
             return

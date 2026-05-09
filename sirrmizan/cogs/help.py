@@ -8,7 +8,7 @@ from discord.ext import commands
 
 from .. import colors
 from ..translations import t
-from ._base import BaseCog, slash_cooldown
+from ._base import BaseCog
 
 if TYPE_CHECKING:
     from ..bot import SirrMizan
@@ -78,8 +78,9 @@ class HelpCog(BaseCog):
         await ctx.send(embed=self._build_help_embed(lang, prefix))
 
     @discord.slash_command(name="help", description="Show available commands")
-    @slash_cooldown(3)
     async def help_slash(self, ctx: discord.ApplicationContext) -> None:
+        if not await self._slash_cooldown(ctx, "help"):
+            return
         lang = self.bot.state.get_server_language(
             ctx.guild_id if ctx.guild_id else None
         )
