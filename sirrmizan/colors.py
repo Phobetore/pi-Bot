@@ -3,6 +3,7 @@
 Internal canonical names are English; aliases in the supported languages are
 accepted as user input. Adding a new color requires updating this module only.
 """
+
 from __future__ import annotations
 
 from typing import Final
@@ -21,17 +22,32 @@ DEFAULT_COLOR: Final[str] = "blue"
 # Aliases mapping any accepted user input to the canonical English name.
 _ALIASES: Final[dict[str, str]] = {
     # English
-    "blue": "blue", "red": "red", "green": "green",
-    "yellow": "yellow", "purple": "purple", "orange": "orange",
+    "blue": "blue",
+    "red": "red",
+    "green": "green",
+    "yellow": "yellow",
+    "purple": "purple",
+    "orange": "orange",
     # French (legacy support)
-    "bleu": "blue", "rouge": "red", "vert": "green",
-    "jaune": "yellow", "violet": "purple",
+    "bleu": "blue",
+    "rouge": "red",
+    "vert": "green",
+    "jaune": "yellow",
+    "violet": "purple",
     # German
-    "blau": "blue", "rot": "red", "grün": "green", "gruen": "green",
-    "gelb": "yellow", "lila": "purple",
+    "blau": "blue",
+    "rot": "red",
+    "grün": "green",
+    "gruen": "green",
+    "gelb": "yellow",
+    "lila": "purple",
     # Spanish
-    "azul": "blue", "rojo": "red", "verde": "green",
-    "amarillo": "yellow", "morado": "purple", "naranja": "orange",
+    "azul": "blue",
+    "rojo": "red",
+    "verde": "green",
+    "amarillo": "yellow",
+    "morado": "purple",
+    "naranja": "orange",
 }
 
 

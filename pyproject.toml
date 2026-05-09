@@ -55,9 +55,31 @@ target-version = "py311"
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "B", "UP", "SIM", "RUF"]
-ignore = ["E501"]
+# E501  : line length is enforced by ``ruff format`` already.
+# SIM105: try/except/pass is fine when the block is small and obvious.
+# RUF059: unused tuple unpack targets are a deliberate name in tests.
+ignore = ["E501", "SIM105", "RUF059"]
 
 [tool.mypy]
 python_version = "3.11"
 strict = true
 ignore_missing_imports = true
+
+# Modules that wrap py-cord can't be fully typed because py-cord ships no
+# stubs and uses untyped decorators. We keep strict mode on the pure-logic
+# modules (parser, state, persistence, config, colors, translations) and
+# disable the noise on the rest.
+[[tool.mypy.overrides]]
+module = [
+    "sirrmizan.bot",
+    "sirrmizan.__main__",
+    "sirrmizan.cogs.*",
+]
+disable_error_code = [
+    "type-arg",
+    "no-untyped-call",
+    "untyped-decorator",
+    "no-untyped-def",
+    "arg-type",
+    "union-attr",
+]

@@ -1,4 +1,5 @@
 """Tests for the State container."""
+
 from __future__ import annotations
 
 import json
@@ -130,9 +131,7 @@ class TestPersistence:
 class TestSchemaSanitization:
     """Loaded JSON may have valid syntax but unexpected shape; we must not crash."""
 
-    async def test_user_stats_with_string_value_is_dropped(
-        self, tmp_path: Path
-    ) -> None:
+    async def test_user_stats_with_string_value_is_dropped(self, tmp_path: Path) -> None:
         (tmp_path / "user_stats.json").write_text(
             json.dumps({"123": "this should be a dict"}), encoding="utf-8"
         )
@@ -143,9 +142,7 @@ class TestSchemaSanitization:
         await state.increment_dice_rolls(123)
         assert state.get_user_dice_count(123) == 1
 
-    async def test_user_prefs_with_list_value_is_dropped(
-        self, tmp_path: Path
-    ) -> None:
+    async def test_user_prefs_with_list_value_is_dropped(self, tmp_path: Path) -> None:
         (tmp_path / "user_preferences.json").write_text(
             json.dumps({"users": {"42": [1, 2, 3]}}), encoding="utf-8"
         )
@@ -155,9 +152,7 @@ class TestSchemaSanitization:
         await state.set_user_color(42, "red")  # must not crash
         assert state.get_user_color_name(42) == "red"
 
-    async def test_server_prefs_with_wrong_type_field_is_filtered(
-        self, tmp_path: Path
-    ) -> None:
+    async def test_server_prefs_with_wrong_type_field_is_filtered(self, tmp_path: Path) -> None:
         (tmp_path / "server_preferences.json").write_text(
             json.dumps({"42": {"prefix": 123, "language": "fr"}}),
             encoding="utf-8",
@@ -193,12 +188,8 @@ class TestSchemaSanitization:
         state.load()
         assert state.get_user_dice_count(7) == 0
 
-    async def test_sanitization_marks_dirty_so_repair_persists(
-        self, tmp_path: Path
-    ) -> None:
-        (tmp_path / "user_stats.json").write_text(
-            json.dumps({"123": "garbage"}), encoding="utf-8"
-        )
+    async def test_sanitization_marks_dirty_so_repair_persists(self, tmp_path: Path) -> None:
+        (tmp_path / "user_stats.json").write_text(json.dumps({"123": "garbage"}), encoding="utf-8")
         state = State(tmp_path)
         state.load()
         assert state.is_dirty

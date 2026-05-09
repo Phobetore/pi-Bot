@@ -6,6 +6,7 @@ Two named loggers exist:
 * ``sirrmizan.audit`` — security-relevant events, written to ``audit.log`` only
   (``propagate=False`` so audit entries do not leak into the general log).
 """
+
 from __future__ import annotations
 
 import logging

@@ -4,6 +4,7 @@ Configuration is sourced from environment variables (optionally provided through
 ``.env`` file). For backward compatibility with the legacy layout, missing values
 fall back to a ``config.json`` file when present.
 """
+
 from __future__ import annotations
 
 import json

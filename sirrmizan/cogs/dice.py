@@ -1,10 +1,11 @@
 """Dice rolling commands (prefix + slash)."""
+
 from __future__ import annotations
 
 import logging
 import re
 import secrets
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING
 
 import discord
 from discord.ext import commands
@@ -38,9 +39,7 @@ class DiceCog(BaseCog):
     def _author_color(self, user_id: int) -> discord.Color:
         return discord.Color(self.bot.state.get_user_color_hex(user_id))
 
-    def _roll_dice(
-        self, expr: ParsedExpression
-    ) -> tuple[int, list[tuple[str, list[int]]]]:
+    def _roll_dice(self, expr: ParsedExpression) -> tuple[int, list[tuple[str, list[int]]]]:
         """Roll the dice from ``expr``.
 
         Returns ``(total, term_results)`` where ``term_results`` is a list of
@@ -65,9 +64,7 @@ class DiceCog(BaseCog):
         if len(signed_results) == 1:
             return f"`{label}` → **{abs(signed_results[0])}**"
         # Multiple dice in one term: show each result and the sum.
-        rendered = " + ".join(f"**{abs(r)}**" for r in signed_results).replace(
-            " + -", " - "
-        )
+        rendered = " + ".join(f"**{abs(r)}**" for r in signed_results).replace(" + -", " - ")
         term_total = abs(sum(signed_results))
         return f"`{label}` → {rendered} = **{term_total}**"
 
@@ -85,7 +82,7 @@ class DiceCog(BaseCog):
         expression_str: str,
         terms: list[tuple[str, list[int]]],
         modifiers: tuple[int, ...],
-        target_name: Optional[str],
+        target_name: str | None,
         lang: str,
     ) -> discord.Embed:
         # Title carries the total — it's what players want to see first.
@@ -103,9 +100,7 @@ class DiceCog(BaseCog):
 
         # Dice breakdown — only meaningful when there's something beyond a
         # single die with no modifier (in that case the title alone suffices).
-        single_die_no_mod = (
-            len(terms) == 1 and len(terms[0][1]) == 1 and not modifiers
-        )
+        single_die_no_mod = len(terms) == 1 and len(terms[0][1]) == 1 and not modifiers
         if terms and not single_die_no_mod:
             lines = [self._format_dice_term(label, signed) for label, signed in terms]
             embed.add_field(
@@ -122,7 +117,7 @@ class DiceCog(BaseCog):
             )
 
         # Footer: author + their avatar.
-        avatar_url: Optional[str] = None
+        avatar_url: str | None = None
         guild_avatar = getattr(author, "guild_avatar", None)
         if guild_avatar is not None:
             avatar_url = guild_avatar.url
@@ -141,7 +136,7 @@ class DiceCog(BaseCog):
         expression_str: str,
         terms: list[tuple[str, list[int]]],
         modifiers: tuple[int, ...],
-        target_name: Optional[str],
+        target_name: str | None,
         lang: str,
     ) -> str:
         """Render the result as a single message line (no embed)."""
@@ -175,8 +170,8 @@ class DiceCog(BaseCog):
         *,
         lang: str,
         prefix: str,
-        guild_id: Optional[int],
-    ) -> tuple[Optional[ParsedExpression], str, Optional[str], Optional[str]]:
+        guild_id: int | None,
+    ) -> tuple[ParsedExpression | None, str, str | None, str | None]:
         """Resolve a roll input into a parsed expression and target.
 
         Returns ``(expr, expression_str, target, error_message)``. If
@@ -198,14 +193,8 @@ class DiceCog(BaseCog):
         expr, expression_str, target_name = parse_roll_input(raw)
 
         if expr is None:
-            looks_like_dice = bool(
-                target_name and _LOOKS_LIKE_DICE_ATTEMPT.match(target_name)
-            )
-            if (
-                default_roll is not None
-                and target_name is not None
-                and not looks_like_dice
-            ):
+            looks_like_dice = bool(target_name and _LOOKS_LIKE_DICE_ATTEMPT.match(target_name))
+            if default_roll is not None and target_name is not None and not looks_like_dice:
                 try:
                     expr = parse(default_roll)
                     expression_str = default_roll
@@ -216,14 +205,10 @@ class DiceCog(BaseCog):
                     parse(raw)
                 except DiceParseError as exc:
                     return None, "", None, t(lang, "roll_invalid", error=str(exc))
-                return None, "", None, t(
-                    lang, "roll_invalid", error="no dice or modifier"
-                )
+                return None, "", None, t(lang, "roll_invalid", error="no dice or modifier")
 
         if expr.is_empty:
-            return None, "", None, t(
-                lang, "roll_invalid", error="no dice or modifier"
-            )
+            return None, "", None, t(lang, "roll_invalid", error="no dice or modifier")
         return expr, expression_str, target_name, None
 
     async def _send_result(
@@ -237,7 +222,7 @@ class DiceCog(BaseCog):
         expression_str: str,
         terms: list[tuple[str, list[int]]],
         modifiers: tuple[int, ...],
-        target_name: Optional[str],
+        target_name: str | None,
         lang: str,
     ) -> None:
         if compact:
@@ -270,9 +255,7 @@ class DiceCog(BaseCog):
     @commands.command(name="roll", aliases=["r"])
     @commands.cooldown(1, 1, commands.BucketType.user)
     @commands.max_concurrency(1, per=commands.BucketType.user, wait=False)
-    async def roll(
-        self, ctx: commands.Context, *, args: Optional[str] = None
-    ) -> None:
+    async def roll(self, ctx: commands.Context, *, args: str | None = None) -> None:
         """Roll dice. Example: ``!roll 2d6+3 Goblin``."""
         lang = self._lang(ctx)
         prefix = self._prefix(ctx)
@@ -343,9 +326,7 @@ class DiceCog(BaseCog):
 
     @commands.command(name="setrollshort")
     @commands.cooldown(1, 3, commands.BucketType.user)
-    async def set_roll_short(
-        self, ctx: commands.Context, mode: Optional[str] = None
-    ) -> None:
+    async def set_roll_short(self, ctx: commands.Context, mode: str | None = None) -> None:
         """Toggle compact roll output for yourself.
 
         Usage: ``!setrollshort on`` / ``!setrollshort off``. Without an
@@ -375,9 +356,7 @@ class DiceCog(BaseCog):
     # ------------------------------------------------------------------
     # Slash commands
     # ------------------------------------------------------------------
-    @discord.slash_command(
-        name="roll", description="Roll dice with an expression like 2d6+3"
-    )
+    @discord.slash_command(name="roll", description="Roll dice with an expression like 2d6+3")
     async def roll_slash(
         self,
         ctx: discord.ApplicationContext,
@@ -396,9 +375,7 @@ class DiceCog(BaseCog):
     ) -> None:
         if not await self._slash_cooldown(ctx, "roll", 1.0):
             return
-        lang = self.bot.state.get_server_language(
-            ctx.guild_id if ctx.guild_id else None
-        )
+        lang = self.bot.state.get_server_language(ctx.guild_id if ctx.guild_id else None)
         prefix = self.bot.config.default_prefix
         guild_id = ctx.guild_id
 
@@ -470,9 +447,7 @@ class DiceCog(BaseCog):
     ) -> None:
         if not await self._slash_cooldown(ctx, "setcolor"):
             return
-        lang = self.bot.state.get_server_language(
-            ctx.guild_id if ctx.guild_id else None
-        )
+        lang = self.bot.state.get_server_language(ctx.guild_id if ctx.guild_id else None)
         try:
             canonical = await self.bot.state.set_user_color(ctx.author.id, color)
         except ValueError:
@@ -486,9 +461,7 @@ class DiceCog(BaseCog):
     async def get_color_slash(self, ctx: discord.ApplicationContext) -> None:
         if not await self._slash_cooldown(ctx, "getcolor"):
             return
-        lang = self.bot.state.get_server_language(
-            ctx.guild_id if ctx.guild_id else None
-        )
+        lang = self.bot.state.get_server_language(ctx.guild_id if ctx.guild_id else None)
         name = self.bot.state.get_user_color_name(ctx.author.id)
         await ctx.respond(t(lang, "color_current", color=name), ephemeral=True)
 
@@ -505,14 +478,12 @@ class DiceCog(BaseCog):
     ) -> None:
         if not await self._slash_cooldown(ctx, "setrollshort"):
             return
-        lang = self.bot.state.get_server_language(
-            ctx.guild_id if ctx.guild_id else None
-        )
+        lang = self.bot.state.get_server_language(ctx.guild_id if ctx.guild_id else None)
         await self.bot.state.set_user_compact(ctx.author.id, enabled)
         await self.bot.state.save()
         key = "rollshort_on" if enabled else "rollshort_off"
         await ctx.respond(t(lang, key), ephemeral=True)
 
 
-def setup(bot: "SirrMizan") -> None:
+def setup(bot: SirrMizan) -> None:
     bot.add_cog(DiceCog(bot))

@@ -15,11 +15,11 @@ This module also exposes :func:`parse_roll_input`, a higher-level helper that
 splits free-form ``!roll`` arguments into an expression and an optional target
 name, tolerating arbitrary whitespace inside and around operators.
 """
+
 from __future__ import annotations
 
 import re
 from dataclasses import dataclass
-from typing import Optional
 
 MAX_ROLLS_PER_TERM = 50
 MAX_FACES = 99999
@@ -78,9 +78,7 @@ def parse(expression: str) -> ParsedExpression:
     if not expression:
         raise DiceParseError("expression is empty")
     if len(expression) > MAX_EXPRESSION_LENGTH:
-        raise DiceParseError(
-            f"expression too long (limit: {MAX_EXPRESSION_LENGTH} characters)"
-        )
+        raise DiceParseError(f"expression too long (limit: {MAX_EXPRESSION_LENGTH} characters)")
 
     dice: list[DicePart] = []
     modifiers: list[int] = []
@@ -90,17 +88,13 @@ def parse(expression: str) -> ParsedExpression:
     while pos < len(expression):
         match = _PIECE_RE.match(expression, pos)
         if match is None or match.start() != pos:
-            raise DiceParseError(
-                f"unexpected character {expression[pos]!r} at position {pos}"
-            )
+            raise DiceParseError(f"unexpected character {expression[pos]!r} at position {pos}")
 
         # All non-leading tokens must start with an explicit sign — otherwise
         # ``2d63d6`` would parse as 2d6 then 3d6 silently.
         token_text = match.group(0)
         if not first_token and token_text[0] not in "+-":
-            raise DiceParseError(
-                f"missing sign before token {token_text!r} at position {pos}"
-            )
+            raise DiceParseError(f"missing sign before token {token_text!r} at position {pos}")
         first_token = False
 
         dice_token = match.group("dice")
@@ -114,13 +108,11 @@ def parse(expression: str) -> ParsedExpression:
             faces = int(faces_str)
             if not 1 <= rolls <= MAX_ROLLS_PER_TERM:
                 raise DiceParseError(
-                    f"invalid number of rolls in {dice_token!r} "
-                    f"(must be 1-{MAX_ROLLS_PER_TERM})"
+                    f"invalid number of rolls in {dice_token!r} (must be 1-{MAX_ROLLS_PER_TERM})"
                 )
             if not 1 <= faces <= MAX_FACES:
                 raise DiceParseError(
-                    f"invalid number of faces in {dice_token!r} "
-                    f"(must be 1-{MAX_FACES})"
+                    f"invalid number of faces in {dice_token!r} (must be 1-{MAX_FACES})"
                 )
             dice.append(DicePart(rolls=rolls, faces=faces, sign=sign))
         else:
@@ -138,6 +130,7 @@ def parse(expression: str) -> ParsedExpression:
 # ---------------------------------------------------------------------------
 # Free-form input splitter
 # ---------------------------------------------------------------------------
+
 
 def _split_trailing_ops(tokens: list[str]) -> list[str]:
     """Split off trailing ``+``/``-`` characters from compound tokens.
@@ -210,7 +203,7 @@ def _join_expression_tokens(tokens: list[str]) -> str:
 
 def parse_roll_input(
     raw: str,
-) -> tuple[Optional[ParsedExpression], str, Optional[str]]:
+) -> tuple[ParsedExpression | None, str, str | None]:
     """Split free-form roll input into (expression, expression_str, target).
 
     Walks tokens left-to-right, picking the longest prefix whose joined form
@@ -232,7 +225,7 @@ def parse_roll_input(
         return None, "", None
 
     longest_k = 0
-    longest_expr: Optional[ParsedExpression] = None
+    longest_expr: ParsedExpression | None = None
     longest_str = ""
 
     # Greedy: try every prefix length and remember the longest one that parses.

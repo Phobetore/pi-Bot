@@ -1,4 +1,5 @@
 """Bot subclass and lifecycle orchestration."""
+
 from __future__ import annotations
 
 import asyncio
@@ -63,14 +64,10 @@ class SirrMizan(commands.Bot):
     # ------------------------------------------------------------------
     # Prefix resolution
     # ------------------------------------------------------------------
-    def _resolve_prefix(
-        self, _bot: commands.Bot, message: discord.Message
-    ) -> str:
+    def _resolve_prefix(self, _bot: commands.Bot, message: discord.Message) -> str:
         if message.guild is None:
             return self.config.default_prefix
-        return self.state.get_server_prefix(
-            message.guild.id, self.config.default_prefix
-        )
+        return self.state.get_server_prefix(message.guild.id, self.config.default_prefix)
 
     # ------------------------------------------------------------------
     # Lifecycle
@@ -85,9 +82,7 @@ class SirrMizan(commands.Bot):
         # ``on_ready`` may fire more than once on reconnect; guard against
         # spawning duplicate save tasks.
         if self._save_task is None or self._save_task.done():
-            self._save_task = asyncio.create_task(
-                self._save_loop(), name="sirrmizan-saver"
-            )
+            self._save_task = asyncio.create_task(self._save_loop(), name="sirrmizan-saver")
             self._save_task.add_done_callback(self._save_task_finished)
 
     def _save_task_finished(self, task: asyncio.Task[None]) -> None:
@@ -98,9 +93,7 @@ class SirrMizan(commands.Bot):
         if exc is not None:
             logger.error("save loop crashed: %r — periodic saves are stopped", exc)
 
-    async def on_command_error(
-        self, ctx: commands.Context, error: Exception
-    ) -> None:
+    async def on_command_error(self, ctx: commands.Context, error: Exception) -> None:
         lang = self.state.get_server_language(ctx.guild.id if ctx.guild else None)
         prefix = (ctx.clean_prefix or self.config.default_prefix).strip()
 
@@ -113,9 +106,7 @@ class SirrMizan(commands.Bot):
             await ctx.send(t(lang, "guild_only"))
             return
         if isinstance(error, commands.MissingRequiredArgument):
-            await ctx.send(
-                t(lang, "missing_argument", name=error.param.name, prefix=prefix)
-            )
+            await ctx.send(t(lang, "missing_argument", name=error.param.name, prefix=prefix))
             return
         if isinstance(error, commands.CommandOnCooldown):
             await ctx.send(t(lang, "command_cooldown", seconds=error.retry_after))
@@ -130,9 +121,7 @@ class SirrMizan(commands.Bot):
             await ctx.send(f"❌ {text}")
             return
 
-        logger.exception(
-            "Unhandled command error in %s", ctx.command, exc_info=error
-        )
+        logger.exception("Unhandled command error in %s", ctx.command, exc_info=error)
         await ctx.send(t(lang, "unexpected_error"))
 
     async def close(self) -> None:

@@ -1,4 +1,5 @@
 """Shared base class for all cogs and slash-command helpers."""
+
 from __future__ import annotations
 
 import time
@@ -23,13 +24,11 @@ _slash_last_call: dict[tuple[int, str], float] = defaultdict(float)
 class BaseCog(commands.Cog):
     """Holds a typed reference to the bot and exposes per-cog helpers."""
 
-    def __init__(self, bot: "SirrMizan") -> None:
+    def __init__(self, bot: SirrMizan) -> None:
         self.bot = bot
 
     def _lang(self, ctx: commands.Context) -> str:
-        return self.bot.state.get_server_language(
-            ctx.guild.id if ctx.guild else None
-        )
+        return self.bot.state.get_server_language(ctx.guild.id if ctx.guild else None)
 
     def _prefix(self, ctx: commands.Context) -> str:
         return (ctx.clean_prefix or self.bot.config.default_prefix).strip()
@@ -55,9 +54,7 @@ class BaseCog(commands.Cog):
         now = time.monotonic()
         elapsed = now - _slash_last_call[bucket_key]
         if elapsed < seconds:
-            lang = self.bot.state.get_server_language(
-                ctx.guild_id if ctx.guild_id else None
-            )
+            lang = self.bot.state.get_server_language(ctx.guild_id if ctx.guild_id else None)
             await ctx.respond(
                 t(lang, "command_cooldown", seconds=seconds - elapsed),
                 ephemeral=True,

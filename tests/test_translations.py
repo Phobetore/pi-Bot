@@ -1,4 +1,5 @@
 """Tests for the translation registry."""
+
 from __future__ import annotations
 
 import pytest

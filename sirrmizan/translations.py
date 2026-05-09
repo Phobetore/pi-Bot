@@ -4,6 +4,7 @@ Each locale exposes the same set of keys. ``get`` falls back to English for
 unknown locales or missing keys, so callers can rely on every key being
 resolvable.
 """
+
 from __future__ import annotations
 
 from typing import Final

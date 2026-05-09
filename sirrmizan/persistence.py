@@ -4,6 +4,7 @@ Writes go to a temporary file in the same directory as the target, then are
 ``os.replace``-d into place. ``os.replace`` is atomic on the same filesystem on
 both POSIX and Windows, ensuring readers never observe a half-written file.
 """
+
 from __future__ import annotations
 
 import json

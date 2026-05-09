@@ -141,6 +141,58 @@ backend for SQLite (via `aiosqlite`) is a self-contained refactor.
 translations, colors — across roughly two hundred cases that run in well
 under a second. Discord-coupled paths (cogs, gateway) are not unit-tested.
 
+## CI / CD
+
+Two GitHub Actions workflows live in `.github/workflows/`.
+
+**`ci.yml`** runs on every push and PR to `dev` or `prod`:
+
+| Job | Tooling |
+|---|---|
+| Lint & type-check | `ruff check`, `ruff format --check`, `mypy` |
+| Tests | `pytest` with coverage on Python 3.11 / 3.12 / 3.13 |
+| Security | `bandit` (SAST), `pip-audit` (dependency CVEs), `gitleaks` (secrets in git history) |
+
+**`deploy.yml`** runs after a successful CI run on `prod`:
+
+* Loads an SSH key and pinned host fingerprint from environment-scoped secrets.
+* Opens an SSH session to the VPS as `botdiscord`.
+* `authorized_keys` enforces a `command="…/scripts/ci_deploy.sh"` so the
+  session can only run that one script — no shell, no port forwarding, no
+  agent forwarding.
+* The script fast-forwards `origin/prod`, refreshes deps, sanity-checks
+  `import sirrmizan`, then `sudo systemctl restart discordbot`. A
+  `/etc/sudoers.d/botdiscord-deploy` file scopes the sudo grant to the
+  three `systemctl` verbs the script actually needs.
+
+### Branch model
+
+* `dev` is the default branch — work happens here, CI runs but nothing is
+  deployed.
+* `prod` is the release branch — merging into it triggers an automated
+  deploy. Branch protection on `prod` requires a green CI run and a
+  reviewed PR.
+
+### Repository configuration (one-time setup)
+
+1. **Default branch**: Settings → Branches → set `dev` as default.
+2. **Branch protection on `prod`**: Settings → Branches → Add rule:
+   - Require a pull request before merging
+   - Require status checks: `Lint & type-check`, `Tests (Python 3.11)`, `Security scans`
+   - Require linear history (squash merges)
+   - Disallow force pushes
+3. **Environment `production`**: Settings → Environments → New →
+   `production`, optionally restrict deployments to the `prod` branch.
+4. **Secrets** (Settings → Secrets and variables → Actions, or scoped to
+   the `production` environment):
+   - `DEPLOY_HOST` — VPS hostname
+   - `DEPLOY_USER` — `botdiscord`
+   - `DEPLOY_SSH_KEY` — private key whose public counterpart is in
+     `~botdiscord/.ssh/authorized_keys` on the server (with the
+     `command="…"` forced-command restriction)
+   - `DEPLOY_KNOWN_HOSTS` — `ssh-keyscan` output for the VPS, pinned so a
+     server swap is detectable
+
 ## License
 
 MIT.

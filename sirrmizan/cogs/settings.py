@@ -1,4 +1,5 @@
 """Server-side configuration commands (prefix, language, default roll)."""
+
 from __future__ import annotations
 
 import logging
@@ -38,9 +39,7 @@ class SettingsCog(BaseCog):
         await self.bot.state.save()
         return normalized, True
 
-    async def _do_set_default_roll(
-        self, guild_id: int, expression: str
-    ) -> tuple[str, str | None]:
+    async def _do_set_default_roll(self, guild_id: int, expression: str) -> tuple[str, str | None]:
         """Returns (normalized_expression, error_message). If error_message is
         None, the value was stored successfully."""
         cleaned = expression.strip()
@@ -92,9 +91,7 @@ class SettingsCog(BaseCog):
     @commands.guild_only()
     @commands.has_permissions(manage_guild=True)
     @commands.cooldown(1, 3, commands.BucketType.guild)
-    async def set_default_roll(
-        self, ctx: commands.Context, *, expression: str
-    ) -> None:
+    async def set_default_roll(self, ctx: commands.Context, *, expression: str) -> None:
         """Set the default dice expression used when ``!roll`` has no argument."""
         lang = self._lang(ctx)
         assert ctx.guild is not None
@@ -107,9 +104,7 @@ class SettingsCog(BaseCog):
     # ------------------------------------------------------------------
     # Slash commands
     # ------------------------------------------------------------------
-    @discord.slash_command(
-        name="setlang", description="Set the bot's language for this server"
-    )
+    @discord.slash_command(name="setlang", description="Set the bot's language for this server")
     @discord.default_permissions(manage_guild=True)
     async def set_language_slash(
         self,
@@ -172,12 +167,10 @@ class SettingsCog(BaseCog):
         lang = self.bot.state.get_server_language(ctx.guild_id)
         normalized, error = await self._do_set_default_roll(ctx.guild_id, expression)
         if error is not None:
-            await ctx.respond(
-                t(lang, "defaultroll_invalid", error=error), ephemeral=True
-            )
+            await ctx.respond(t(lang, "defaultroll_invalid", error=error), ephemeral=True)
             return
         await ctx.respond(t(lang, "defaultroll_set", expression=normalized))
 
 
-def setup(bot: "SirrMizan") -> None:
+def setup(bot: SirrMizan) -> None:
     bot.add_cog(SettingsCog(bot))

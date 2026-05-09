@@ -1,4 +1,5 @@
 """Custom localized help command."""
+
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
@@ -51,10 +52,7 @@ class HelpCog(BaseCog):
         )
         embed.add_field(
             name=f"🔁 `{prefix}defaultRoll` — {t(lang, 'defaultroll_title')}",
-            value=(
-                f"{t(lang, 'defaultroll_desc')}\n"
-                f"```\n{prefix}defaultRoll 1d20\n```"
-            ),
+            value=(f"{t(lang, 'defaultroll_desc')}\n```\n{prefix}defaultRoll 1d20\n```"),
             inline=False,
         )
         embed.add_field(
@@ -81,12 +79,10 @@ class HelpCog(BaseCog):
     async def help_slash(self, ctx: discord.ApplicationContext) -> None:
         if not await self._slash_cooldown(ctx, "help"):
             return
-        lang = self.bot.state.get_server_language(
-            ctx.guild_id if ctx.guild_id else None
-        )
+        lang = self.bot.state.get_server_language(ctx.guild_id if ctx.guild_id else None)
         prefix = self.bot.config.default_prefix
         await ctx.respond(embed=self._build_help_embed(lang, prefix), ephemeral=True)
 
 
-def setup(bot: "SirrMizan") -> None:
+def setup(bot: SirrMizan) -> None:
     bot.add_cog(HelpCog(bot))

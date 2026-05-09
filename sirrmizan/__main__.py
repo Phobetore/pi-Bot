@@ -1,4 +1,5 @@
 """Entry point: ``python -m sirrmizan``."""
+
 from __future__ import annotations
 
 import asyncio
@@ -30,9 +31,7 @@ async def _run_with_signals(bot: SirrMizan) -> None:
 
     for signame in ("SIGINT", "SIGTERM"):
         try:
-            loop.add_signal_handler(
-                getattr(signal, signame), _request_stop, signame
-            )
+            loop.add_signal_handler(getattr(signal, signame), _request_stop, signame)
         except (NotImplementedError, AttributeError):
             # Windows or non-main thread — Python's default handlers cover us.
             pass
@@ -86,8 +85,7 @@ def main() -> int:
     except discord.LoginFailure as exc:
         print(f"Discord login failed: {exc}", file=sys.stderr)
         print(
-            "Verify SIRRMIZAN_TOKEN is correct and the bot has not been "
-            "regenerated or revoked.",
+            "Verify SIRRMIZAN_TOKEN is correct and the bot has not been regenerated or revoked.",
             file=sys.stderr,
         )
         return 3

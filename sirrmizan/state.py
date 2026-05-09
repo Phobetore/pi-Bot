@@ -8,6 +8,7 @@ when ``is_dirty`` is true, avoiding spurious writes.
 The state is intentionally narrow: three JSON files plus a few helpers. For
 larger needs, migrate to SQLite (the API surface here is small enough to swap).
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -119,14 +120,14 @@ class State:
             if not (isinstance(gid, str) and isinstance(entry, dict)):
                 self._dirty = True
                 continue
-            clean: dict[str, Any] = {}
+            clean_server: dict[str, Any] = {}
             for key in ("prefix", "language", "default_roll"):
                 value = entry.get(key)
                 if isinstance(value, str):
-                    clean[key] = value
+                    clean_server[key] = value
                 elif key in entry:
                     self._dirty = True  # field present but wrong type
-            cleaned_servers[gid] = clean
+            cleaned_servers[gid] = clean_server
         if cleaned_servers != self._server_prefs:
             self._dirty = True
         self._server_prefs = cleaned_servers
@@ -276,6 +277,4 @@ class State:
         async with self._lock:
             self._server_prefs.setdefault(str(guild_id), {})["default_roll"] = expression
             self._dirty = True
-        audit_logger.info(
-            "default_roll_changed guild=%s expression=%r", guild_id, expression
-        )
+        audit_logger.info("default_roll_changed guild=%s expression=%r", guild_id, expression)
