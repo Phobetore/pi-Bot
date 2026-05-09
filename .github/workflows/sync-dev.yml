@@ -1,0 +1,36 @@
+name: Sync dev with prod
+
+# Squash-merging dev → prod creates a new commit on prod whose SHA is not
+# an ancestor of dev's tip, so future PRs from dev fail to fast-forward
+# (the same content "looks new" to git). After every push to prod, fast-forward
+# dev onto prod so the two stay aligned and PRs stay clean.
+
+on:
+  push:
+    branches: [prod]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: sync-dev
+  cancel-in-progress: true
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: dev
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Reset dev to prod
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git fetch origin prod
+          git reset --hard origin/prod
+          git push --force-with-lease origin dev
