@@ -11,7 +11,7 @@ What to do when something goes sideways. Each section starts with
    ```
    ssh root@vps.bounnit-aymane.fr 'systemctl is-active discordbot'
    ```
-2. Check the heartbeat file is fresh (mtime should be < 60s ago):
+2. Check the heartbeat file is fresh (mtime should be < 30s ago):
    ```
    ssh root@vps.bounnit-aymane.fr 'stat /home/botdiscord/SirrMizan/data/heartbeat'
    ```
@@ -191,5 +191,5 @@ ssh root@vps.bounnit-aymane.fr 'systemctl stop discordbot && crontab -l | grep -
 
 To re-enable:
 ```
-ssh root@vps.bounnit-aymane.fr 'systemctl start discordbot && ( crontab -l ; echo "*/5 * * * * /usr/local/bin/sirrmizan-heartbeat-check.sh" ) | crontab -'
+ssh root@vps.bounnit-aymane.fr 'systemctl start discordbot && ( crontab -l ; echo "* * * * * /usr/local/bin/sirrmizan-heartbeat-check.sh" ) | crontab -'
 ```

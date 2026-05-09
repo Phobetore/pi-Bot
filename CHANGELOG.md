@@ -6,6 +6,12 @@ adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Changed
+
+- Tightened watchdog cadence: bot heartbeat 60s→30s (write-then-sleep so
+  a fresh boot is detected immediately), cron check 5min→1min, stale
+  threshold 5min→90s. Removes the gateway-stuck blind spot below 5 min.
+
 ## [1.1.0] — 2026-05-09
 
 First tagged release. Bot is feature-complete for tabletop dice rolling
