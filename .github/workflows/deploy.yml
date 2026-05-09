@@ -26,11 +26,13 @@ jobs:
     environment:
       name: production
       url: https://github.com/${{ github.repository }}
-    # Only deploy when the upstream CI run was successful (or when the
-    # deploy was kicked off manually with workflow_dispatch).
+    # Only deploy from the prod branch. workflow_dispatch is also gated to
+    # prod so accidentally clicking "Run workflow" from another branch is
+    # a no-op (the environment also enforces this, this is belt-and-braces).
     if: >
-      github.event_name == 'workflow_dispatch' ||
-      (github.event.workflow_run.conclusion == 'success' &&
+      (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/prod') ||
+      (github.event_name == 'workflow_run' &&
+       github.event.workflow_run.conclusion == 'success' &&
        github.event.workflow_run.head_branch == 'prod')
 
     steps:
