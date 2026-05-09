@@ -18,13 +18,32 @@ logger = logging.getLogger(__name__)
 
 
 async def _run_with_signals(bot: SirrMizan) -> None:
-    """Run the bot, flushing state cleanly on SIGINT/SIGTERM (POSIX only)."""
+    """Run the bot. SIGINT/SIGTERM trigger ``bot.close()`` (POSIX only).
+
+    Closing the bot causes ``bot.start()`` to return naturally; the recommended
+    py-cord pattern. We don't await the bot from outside while also closing it
+    (that path was racing aiohttp's session cleanup and emitted
+    ``RuntimeError: Session is closed`` on shutdown).
+    """
     loop = asyncio.get_running_loop()
-    stop = asyncio.Event()
+    closing = False
+
+    async def _shutdown() -> None:
+        nonlocal closing
+        if closing:
+            return
+        closing = True
+        try:
+            async with asyncio.timeout(30):
+                await bot.close()
+        except TimeoutError:
+            logger.warning("bot.close() exceeded 30s timeout")
+        except Exception:
+            logger.exception("error during bot.close()")
 
     def _request_stop(signame: str) -> None:
         logger.info("Received %s — shutting down", signame)
-        stop.set()
+        loop.create_task(_shutdown(), name="sirrmizan-shutdown")
 
     for signame in ("SIGINT", "SIGTERM"):
         try:
@@ -32,30 +51,7 @@ async def _run_with_signals(bot: SirrMizan) -> None:
         except (NotImplementedError, AttributeError):
             pass  # not supported on Windows
 
-    bot_task = asyncio.create_task(bot.run_lifecycle(), name="sirrmizan-main")
-    stop_task = asyncio.create_task(stop.wait(), name="sirrmizan-stop-signal")
-
-    try:
-        done, pending = await asyncio.wait(
-            {bot_task, stop_task}, return_when=asyncio.FIRST_COMPLETED
-        )
-        if stop_task in done and not bot_task.done():
-            await bot.close()
-            try:
-                async with asyncio.timeout(30):
-                    try:
-                        await bot_task
-                    except asyncio.CancelledError:
-                        pass
-            except TimeoutError:
-                logger.warning("bot did not exit within 30s; forcing")
-        # Surface any exception raised by the bot lifecycle.
-        if bot_task.done():
-            bot_task.result()
-    finally:
-        for task in (bot_task, stop_task):
-            if not task.done():
-                task.cancel()
+    await bot.run_lifecycle()
 
 
 def main() -> int:
