@@ -11,10 +11,11 @@ from sirrmizan.config import ConfigError, load_config
 
 @pytest.fixture(autouse=True)
 def _isolate_env(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
-    """Strip SirrMizan env vars and chdir to a fresh tmp directory.
+    """Strip env vars, neutralize ``load_dotenv``, and chdir to a fresh tmp.
 
-    This prevents test order from leaking values between cases and prevents
-    a real ``config.json`` in the project root from being picked up.
+    ``python-dotenv`` walks up from the caller's ``__file__`` (not cwd) so a
+    project-level ``.env`` would otherwise leak in. We replace ``load_dotenv``
+    with a no-op for the duration of each test.
     """
     for key in (
         "SIRRMIZAN_TOKEN",
@@ -26,6 +27,7 @@ def _isolate_env(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
         "SIRRMIZAN_CONFIG",
     ):
         monkeypatch.delenv(key, raising=False)
+    monkeypatch.setattr("sirrmizan.config.load_dotenv", lambda *a, **k: False)
     monkeypatch.chdir(tmp_path)
 
 

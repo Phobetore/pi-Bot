@@ -14,7 +14,6 @@ from .state import State
 from .translations import t
 
 logger = logging.getLogger(__name__)
-audit_logger = logging.getLogger("sirrmizan.audit")
 
 
 def _discover_extensions() -> tuple[str, ...]:
@@ -89,6 +88,15 @@ class SirrMizan(commands.Bot):
             self._save_task = asyncio.create_task(
                 self._save_loop(), name="sirrmizan-saver"
             )
+            self._save_task.add_done_callback(self._save_task_finished)
+
+    def _save_task_finished(self, task: asyncio.Task[None]) -> None:
+        """Log if the save loop ended unexpectedly so we don't lose state silently."""
+        if task.cancelled():
+            return
+        exc = task.exception()
+        if exc is not None:
+            logger.error("save loop crashed: %r — periodic saves are stopped", exc)
 
     async def on_command_error(
         self, ctx: commands.Context, error: Exception

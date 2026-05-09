@@ -25,10 +25,13 @@ if [[ -f "$PIDFILE" ]]; then
     rm -f "$PIDFILE"
 fi
 
-# Pick the interpreter: explicit override > local venv > system python.
+# Pick the interpreter: explicit override > local venv (POSIX layout) >
+# local venv (Windows layout, useful under Git Bash / MSYS) > system python.
 if [[ -z "${PYTHON:-}" ]]; then
     if [[ -x ".venv/bin/python" ]]; then
         PYTHON=".venv/bin/python"
+    elif [[ -x ".venv/Scripts/python.exe" ]]; then
+        PYTHON=".venv/Scripts/python.exe"
     else
         PYTHON="python"
     fi

@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import signal
 import sys
 
 import discord
@@ -13,6 +14,50 @@ from .logging_setup import configure_logging
 from .state import State
 
 logger = logging.getLogger(__name__)
+
+
+async def _run_with_signals(bot: SirrMizan) -> None:
+    """Install POSIX signal handlers so SIGTERM/SIGINT trigger a clean
+    shutdown that flushes state. On Windows ``loop.add_signal_handler`` is
+    not supported and we rely on Ctrl-C → KeyboardInterrupt instead.
+    """
+    loop = asyncio.get_running_loop()
+    stop = asyncio.Event()
+
+    def _request_stop(signame: str) -> None:
+        logger.info("Received %s — shutting down", signame)
+        stop.set()
+
+    for signame in ("SIGINT", "SIGTERM"):
+        try:
+            loop.add_signal_handler(
+                getattr(signal, signame), _request_stop, signame
+            )
+        except (NotImplementedError, AttributeError):
+            # Windows or non-main thread — Python's default handlers cover us.
+            pass
+
+    bot_task = asyncio.create_task(bot.run_lifecycle(), name="sirrmizan-main")
+    stop_task = asyncio.create_task(stop.wait(), name="sirrmizan-stop-signal")
+
+    try:
+        done, pending = await asyncio.wait(
+            {bot_task, stop_task}, return_when=asyncio.FIRST_COMPLETED
+        )
+        if stop_task in done and not bot_task.done():
+            await bot.close()
+            with asyncio.timeout(30):
+                try:
+                    await bot_task
+                except asyncio.CancelledError:
+                    pass
+        # Surface any exception raised by the bot lifecycle.
+        if bot_task.done():
+            bot_task.result()
+    finally:
+        for task in (bot_task, stop_task):
+            if not task.done():
+                task.cancel()
 
 
 def main() -> int:
@@ -31,7 +76,7 @@ def main() -> int:
     bot = SirrMizan(config=config, state=state)
 
     try:
-        asyncio.run(bot.run_lifecycle())
+        asyncio.run(_run_with_signals(bot))
     except KeyboardInterrupt:
         logger.info("Interrupted by user")
         return 130

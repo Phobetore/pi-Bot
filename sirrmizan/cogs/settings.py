@@ -10,7 +10,7 @@ from discord.ext import commands
 from ..dice_parser import DiceParseError, parse, parse_roll_input
 from ..state import is_valid_prefix
 from ..translations import SUPPORTED_LANGUAGES, t
-from ._base import BaseCog
+from ._base import BaseCog, slash_cooldown
 
 if TYPE_CHECKING:
     from ..bot import SirrMizan
@@ -111,6 +111,7 @@ class SettingsCog(BaseCog):
         name="setlang", description="Set the bot's language for this server"
     )
     @discord.default_permissions(manage_guild=True)
+    @slash_cooldown(3)
     async def set_language_slash(
         self,
         ctx: discord.ApplicationContext,
@@ -131,6 +132,7 @@ class SettingsCog(BaseCog):
         name="setprefix", description="Set a custom command prefix for this server"
     )
     @discord.default_permissions(manage_guild=True)
+    @slash_cooldown(3)
     async def set_prefix_slash(
         self,
         ctx: discord.ApplicationContext,
@@ -153,6 +155,7 @@ class SettingsCog(BaseCog):
         description="Set the default dice expression for !roll without arguments",
     )
     @discord.default_permissions(manage_guild=True)
+    @slash_cooldown(3)
     async def set_default_roll_slash(
         self,
         ctx: discord.ApplicationContext,

@@ -12,7 +12,7 @@ from discord.ext import commands
 from .. import colors
 from ..dice_parser import DiceParseError, ParsedExpression, parse, parse_roll_input
 from ..translations import t
-from ._base import BaseCog
+from ._base import BaseCog, slash_cooldown
 
 if TYPE_CHECKING:
     from ..bot import SirrMizan
@@ -378,6 +378,7 @@ class DiceCog(BaseCog):
     @discord.slash_command(
         name="roll", description="Roll dice with an expression like 2d6+3"
     )
+    @slash_cooldown(3)
     async def roll_slash(
         self,
         ctx: discord.ApplicationContext,
@@ -457,6 +458,7 @@ class DiceCog(BaseCog):
             )
 
     @discord.slash_command(name="setcolor", description="Set your preferred embed color")
+    @slash_cooldown(3)
     async def set_color_slash(
         self,
         ctx: discord.ApplicationContext,
@@ -479,6 +481,7 @@ class DiceCog(BaseCog):
         await ctx.respond(t(lang, "color_set", color=canonical), ephemeral=True)
 
     @discord.slash_command(name="getcolor", description="Show your preferred embed color")
+    @slash_cooldown(3)
     async def get_color_slash(self, ctx: discord.ApplicationContext) -> None:
         lang = self.bot.state.get_server_language(
             ctx.guild_id if ctx.guild_id else None
@@ -490,6 +493,7 @@ class DiceCog(BaseCog):
         name="setrollshort",
         description="Toggle compact roll output for yourself",
     )
+    @slash_cooldown(3)
     async def set_roll_short_slash(
         self,
         ctx: discord.ApplicationContext,
