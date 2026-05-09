@@ -3,7 +3,6 @@ name: Deploy to production
 on:
   workflow_run:
     workflows: ["CI"]
-    branches: [prod]
     types: [completed]
   workflow_dispatch:
 
@@ -17,27 +16,26 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  deploy:
-    name: Deploy to VPS
+  # The gate is the ONLY place the prod-branch check lives. The deploy job
+  # depends on it, which means the deploy job is skipped (and crucially,
+  # the production environment is never referenced) when the source CI did
+  # not run on prod. Putting the if: directly on the deploy job does not
+  # work: GitHub registers the deployment to the production environment as
+  # soon as the job is queued, before the if: is evaluated, and the env
+  # protection rule then fails the run with "Branch X is not allowed to
+  # deploy to production".
+  gate:
+    name: Eligibility gate
     runs-on: ubuntu-latest
-    # The "production" environment can carry required reviewers, secrets,
-    # and a deployment-branches restriction. See branch-protection notes
-    # in the README.
-    environment:
-      name: production
-      url: https://github.com/${{ github.repository }}
-    # Only deploy from the prod branch. workflow_dispatch is also gated to
-    # prod so accidentally clicking "Run workflow" from another branch is
-    # a no-op (the environment also enforces this, this is belt-and-braces).
     if: >
       (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/prod') ||
       (github.event_name == 'workflow_run' &&
        github.event.workflow_run.conclusion == 'success' &&
        github.event.workflow_run.head_branch == 'prod')
-
+    outputs:
+      sha: ${{ steps.commit.outputs.sha }}
     steps:
-      - name: Resolve commit being deployed
-        id: commit
+      - id: commit
         run: |
           if [ "${{ github.event_name }}" = "workflow_run" ]; then
             echo "sha=${{ github.event.workflow_run.head_sha }}" >> "$GITHUB_OUTPUT"
@@ -45,6 +43,15 @@ jobs:
             echo "sha=${{ github.sha }}" >> "$GITHUB_OUTPUT"
           fi
 
+  deploy:
+    name: Deploy to VPS
+    needs: gate
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+      url: https://github.com/${{ github.repository }}
+
+    steps:
       - name: Configure SSH
         env:
           DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
@@ -72,5 +79,5 @@ jobs:
 
       - name: Summary
         run: |
-          echo "### Deployed \`${{ steps.commit.outputs.sha }}\` to production" \
+          echo "### Deployed \`${{ needs.gate.outputs.sha }}\` to production" \
             >> "$GITHUB_STEP_SUMMARY"
