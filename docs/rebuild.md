@@ -234,7 +234,7 @@ python3 -m venv /opt/sirrmizan-tools
 Copy the four scripts from the repo's `scripts/` directory (or your own
 copy) to `/usr/local/bin/`. They are:
 
-- `sirrmizan-heartbeat-check.sh` — every 5 min, restarts on stuck bot
+- `sirrmizan-heartbeat-check.sh` — every minute, restarts on stuck bot
 - `sirrmizan-backup.sh` — daily, tarballs `data/` to `/root/backups`
 - `sirrmizan-logwatch.sh` — weekly, posts logwatch report to Discord
 - `sirrmizan-pip-audit.sh` — weekly, alerts on new CVEs in deps
@@ -249,7 +249,7 @@ Cron (root):
 crontab -e
 ```
 ```
-*/5 * * * * /usr/local/bin/sirrmizan-heartbeat-check.sh
+* * * * *   /usr/local/bin/sirrmizan-heartbeat-check.sh
 30 3 * * *  /usr/local/bin/sirrmizan-backup.sh
 0 7 * * *   /usr/local/bin/sirrmizan-disk-check.sh
 0 8 * * 1   /usr/local/bin/sirrmizan-logwatch.sh
@@ -286,7 +286,7 @@ Run through these, top to bottom:
 1. `systemctl is-active discordbot` → `active`
 2. `journalctl -u discordbot -n 30 --no-pager` shows `Connected as ...`
 3. `stat /home/botdiscord/SirrMizan/data/heartbeat` — modified within
-   the last 60 s
+   the last 30 s
 4. From your laptop, run a manual deploy with the CI key — the script
    should exit `[deploy] already at <SHA> — nothing to do`:
    ```
