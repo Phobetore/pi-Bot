@@ -46,6 +46,58 @@ What to do when something goes sideways. Each section starts with
    ```
    Commit, merge to prod, deploy retries.
 
+## False-positive ban (your own IP got blocked)
+
+**Symptom:** SSH from your usual workstation suddenly fails or times
+out, or you got a Discord alert `🛑 fail2ban a banni X.X.X.X qui
+apparaît dans known-good-ips`.
+
+1. Unban immediately:
+   ```
+   ssh root@<vps>  # if you can — use VPS console otherwise
+   fail2ban-client unban <your-ip>
+   ipset del sirrmizan-permaban <your-ip> 2>/dev/null
+   /usr/local/bin/sirrmizan-ipset-save.sh sirrmizan-permaban
+   ```
+2. Add to known-good-ips so the anomaly detector pings instead of the
+   security stack silently dropping you:
+   ```
+   echo '<your-ip>' >> /var/lib/sirrmizan/known-good-ips.txt
+   ```
+
+## Ban-rate alert (📈 pic d'activité fail2ban)
+
+**Symptom:** Discord alert `📈 pic d'activité fail2ban: N bans en 5 min`.
+
+1. Most of the time this is a distributed botnet scan — fail2ban is
+   handling it, nothing to do. The alert exists so you know if it
+   crosses into "this is sustained, maybe we need to tune".
+2. Check the size of the offender pool:
+   ```
+   ssh root@<vps> 'journalctl -u fail2ban --since "1 hour ago" | grep -oE "Ban [0-9a-fA-F.:]+" | sort -u | wc -l'
+   ```
+   If >50 unique IPs/h, it's worth lowering `findtime` in
+   `/etc/fail2ban/jail.d/sshd.local` or raising the recidive aggressiveness.
+3. If a single IP keeps coming back after its 4-week recidive ban
+   expires, permanent ipset:
+   ```
+   ssh root@<vps> 'ipset add sirrmizan-permaban <ip> -exist && /usr/local/bin/sirrmizan-ipset-save.sh sirrmizan-permaban'
+   ```
+
+## Threat-feed update failed
+
+**Symptom:** Discord alert `⚠️ threat-feed update échouée`.
+
+1. Spamhaus and AbuseIPDB were both unreachable at run time. The
+   blocklist keeps its previous content (no risk of opening up).
+2. Manual retry:
+   ```
+   ssh root@<vps> '/usr/local/bin/sirrmizan-threatfeed-update.sh'
+   ```
+3. If repeated failures, check outbound connectivity (DNS first) and
+   whether AbuseIPDB rate-limited the key. Spamhaus DROP is rarely
+   down — if it is, you'll know within minutes from their status page.
+
 ## Heartbeat watchdog is spamming alerts
 
 **Symptom:** Discord channel gets repeated `⚠️ heartbeat stale` alerts.

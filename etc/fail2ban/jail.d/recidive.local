@@ -1,0 +1,16 @@
+# Recidive jail: watches fail2ban's own log and re-bans IPs that have
+# already been banned ≥3 times in the last 7 days. The recidive ban is
+# 4 weeks long AND added to the persistent ipset, so the IP survives
+# fail2ban restart and reboot.
+
+[recidive]
+enabled  = true
+filter   = recidive
+logpath  = /var/log/fail2ban.log
+backend  = auto
+maxretry = 3
+findtime = 7d
+bantime  = 4w
+action   = %(action_)s
+           permaban-ipset[name=recidive]
+           abuseipdb-enrich[name=recidive]

@@ -6,6 +6,35 @@ adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added — security stack uplift
+
+- **Persistent permaban** via `ipset` (`sirrmizan-permaban`, hash:ip)
+  loaded at boot by a new `sirrmizan-ipset-restore.service`. Survives
+  fail2ban restart and reboot — previously every ban evaporated on
+  service bounce.
+- **Recidive jail** for fail2ban: any IP that triggers ≥3 bans in 7
+  days is moved to the permaban ipset for 4 weeks.
+- **AbuseIPDB enrichment**: each ban is queried against AbuseIPDB,
+  results (country, ISP, confidence, total reports) appended to
+  `/var/lib/sirrmizan/attack-log.jsonl`. Immediate Discord alert when
+  confidence ≥90, when a new attacker country is seen, or when one of
+  our known-good IPs gets banned (false-positive guard).
+- **Threat-feed pre-block** (`sirrmizan-blocklist`, hash:net) refreshed
+  daily from Spamhaus DROP/EDROP and AbuseIPDB blacklist. iptables
+  drops the traffic at the top of INPUT before sshd even sees it.
+- **Anomaly detector** running every 5 min: catches ban-rate spikes,
+  single-username brute-force bursts, and our-own-IPs hammering auth
+  (compromised account, NAT issue). Per-pattern 30-min cooldown so we
+  don't flood the channel during a sustained scan.
+- **Weekly security report** (`sirrmizan-security-report.py`,
+  Mon 09:00) replacing the bare logwatch dump: top IPs with score +
+  ISP + country, top usernames tried, country breakdown, UTC hour
+  heatmap, recidive count, ipset sizes. Posted to Discord as a short
+  embed + a full text attachment.
+- One-shot installer `sirrmizan-security-init.sh` for fresh VPS or
+  upgrade-in-place. All new helper scripts live in the repo
+  (`scripts/`) so they're version-controlled.
+
 ## [1.1.1] — 2026-05-09
 
 ### Fixed

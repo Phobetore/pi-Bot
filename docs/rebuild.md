@@ -256,6 +256,31 @@ crontab -e
 0 9 * * 1   /usr/local/bin/sirrmizan-pip-audit.sh
 ```
 
+## 8b. Security stack (optional but recommended)
+
+Adds persistent permaban via ipset, AbuseIPDB-enriched bans, daily
+threat-feed pre-block (Spamhaus DROP/EDROP + AbuseIPDB blacklist),
+anomaly alerts, and a weekly analytics report. Run from the cloned
+repo:
+
+```
+cd /home/botdiscord/SirrMizan
+sudo ./scripts/sirrmizan-security-init.sh
+```
+
+The installer is idempotent — safe to re-run on a working host.
+
+To enable AbuseIPDB enrichment, register a free key at
+abuseipdb.com (1000 lookups/day) and drop it in:
+```
+echo 'YOUR_API_KEY' > /etc/sirrmizan/abuseipdb.key
+chmod 600 /etc/sirrmizan/abuseipdb.key
+```
+
+Without the key, Spamhaus DROP/EDROP still feeds the blocklist and
+the rest of the stack works degraded (no per-ban score, no weekly
+country/ISP breakdown).
+
 ## 9. CI deploy key (forced-command)
 
 The GitHub Actions deploy uses an SSH key that can only execute the

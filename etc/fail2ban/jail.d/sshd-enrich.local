@@ -1,0 +1,8 @@
+# Adds the AbuseIPDB enrichment hook to the existing [sshd] jail
+# without changing its ban behavior. The default iptables ban set up
+# in sshd.local still applies; this just observes each ban and pushes
+# metadata into the attack log + alerts on high-score offenders.
+
+[sshd]
+action = %(action_)s
+         abuseipdb-enrich[name=sshd]
