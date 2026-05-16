@@ -15,6 +15,7 @@ CANONICAL_COLORS: Final[dict[str, int]] = {
     "yellow": 0xF1C40F,
     "purple": 0x9B59B6,
     "orange": 0xE67E22,
+    "turquoise": 0x1ABC9C,
 }
 
 DEFAULT_COLOR: Final[str] = "blue"
@@ -28,6 +29,7 @@ _ALIASES: Final[dict[str, str]] = {
     "yellow": "yellow",
     "purple": "purple",
     "orange": "orange",
+    "turquoise": "turquoise",
     # French (legacy support)
     "bleu": "blue",
     "rouge": "red",
@@ -41,6 +43,8 @@ _ALIASES: Final[dict[str, str]] = {
     "gruen": "green",
     "gelb": "yellow",
     "lila": "purple",
+    "türkis": "turquoise",
+    "tuerkis": "turquoise",
     # Spanish
     "azul": "blue",
     "rojo": "red",
@@ -48,6 +52,7 @@ _ALIASES: Final[dict[str, str]] = {
     "amarillo": "yellow",
     "morado": "purple",
     "naranja": "orange",
+    "turquesa": "turquoise",
 }
 
 

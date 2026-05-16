@@ -32,6 +32,10 @@ class TestResolve:
             ("amarillo", "yellow"),
             ("morado", "purple"),
             ("naranja", "orange"),
+            ("turquoise", "turquoise"),
+            ("türkis", "turquoise"),
+            ("tuerkis", "turquoise"),
+            ("turquesa", "turquoise"),
         ],
     )
     def test_localized_aliases(self, alias: str, expected: str) -> None:
